@@ -14,7 +14,13 @@ interface User {
 interface AuthContextType {
   user: User | null;
   login: (login: string, password: string) => Promise<boolean>;
-  register: (name: string, email: string, password: string) => Promise<boolean>;
+  register: (
+    name: string,
+    surname: string,
+    patronymic: string | null,
+    email: string,
+    password: string
+  ) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   isLoading: boolean;
   token: string | null;
@@ -80,7 +86,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = async (
+    name: string,
+    surname: string,
+    patronymic: string | null,
+    email: string,
+    password: string
+  ): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
     try {
       // backend expects login (we will use email as login). Also roles required in your service.
@@ -88,17 +100,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         login: email,
         password,
         name,
-        surname: '',       // optional fields - adjust form to include surname if needed
-        patronymic: null,
+        surname,       // optional fields - adjust form to include surname if needed
+        patronymic,
         roles: ['TEACHER'] // change as needed
       });
       // After successful register — optionally auto-login:
-      const success = await login(email, password);
+      const logged = await login(email, password);
       setIsLoading(false);
-      return success;
-    } catch (err) {
+      return { success: logged };
+    } catch (err: any) {
       setIsLoading(false);
-      return false;
+      const serverMessage =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        "Registration failed";
+
+    return { success: false, error: serverMessage };
     }
   };
 

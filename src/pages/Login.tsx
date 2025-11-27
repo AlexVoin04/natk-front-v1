@@ -4,11 +4,17 @@ import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../contexts/AuthContext';
 
+interface FormErrors {
+  email?: string;
+  password?: string;
+}
+
 const Login: React.FC = () => {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [showPassword, setShowPassword] = useState(false);
   const { login, isLoading } = useAuth();
   const navigate = useNavigate();
@@ -16,8 +22,30 @@ const Login: React.FC = () => {
 
   const from = location.state?.from?.pathname || '/';
 
+  const validateEmail = (email: string) => {
+    if (!email) return 'Email is required';
+    if (!/^\S+@\S+\.\S+$/.test(email)) return 'Email is invalid';
+    return '';
+  };
+
+  const validate = () => {
+    const errors: FormErrors = {};
+    const emailError = validateEmail(formData.email);
+    if (emailError) errors.email = emailError;
+
+    if (!formData.password) {
+      errors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
+      errors.password = 'Password must be at least 6 characters';
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validate()) return;
     
     const success = await login(formData.email, formData.password);
     if (success) {
@@ -33,7 +61,17 @@ const Login: React.FC = () => {
       ...prev,
       [e.target.name]: e.target.value
     }));
+
+    setFormErrors(prev => ({
+      ...prev,
+      [e.target.name]: undefined
+    }));
   };
+
+  const getInputClass = (field: keyof FormErrors) =>
+    `w-full pl-10 pr-3 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B67F5] focus:border-transparent ${
+      formErrors[field] ? 'border-red-500' : 'border-gray-300'
+    }`;
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -63,13 +101,17 @@ const Login: React.FC = () => {
                   id="email"
                   name="email"
                   type="email"
-                  required
                   value={formData.email}
-                  onChange={handleChange}
-                  className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B67F5] focus:border-transparent"
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, email: e.target.value }));
+                    // Валидация в реальном времени:
+                    setFormErrors(prev => ({ ...prev, email: validateEmail(e.target.value) }));
+                  }}
+                  className={getInputClass('email')}
                   placeholder="Enter your email"
                 />
               </div>
+              {formErrors.email && <p className="text-red-500 text-sm mt-1">{formErrors.email}</p>}
             </div>
 
             <div>
@@ -82,10 +124,9 @@ const Login: React.FC = () => {
                   id="password"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
-                  required
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B67F5] focus:border-transparent"
+                  className={getInputClass('password')}
                   placeholder="Enter your password"
                 />
                 <button
@@ -96,6 +137,7 @@ const Login: React.FC = () => {
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
+              {formErrors.password && <p className="text-red-500 text-sm mt-1">{formErrors.password}</p>}
             </div>
           </div>
 
