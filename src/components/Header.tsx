@@ -22,14 +22,14 @@ const Header: React.FC = () => {
           <h1 className="text-xl font-semibold text-[#3A3A3C]">User Storage</h1>
         </Link>
         
-        <nav className="hidden md:flex items-center space-x-8">
+        {/* <nav className="hidden md:flex items-center space-x-8">
           <Link to="/" className="text-[#3A3A3C] hover:text-[#4B67F5] transition-colors">
             Storage
           </Link>
           <Link to="/trash" className="text-[#3A3A3C] hover:text-[#4B67F5] transition-colors">
             Trash
           </Link>
-        </nav>
+        </nav> */}
 
         <div className="flex items-center space-x-4">
           <span className="text-sm text-[#3A3A3C] hidden sm:block">

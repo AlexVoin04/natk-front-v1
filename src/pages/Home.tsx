@@ -128,6 +128,7 @@ const Home: React.FC = () => {
 
           <FileTable
             items={files}
+            viewMode={viewMode}
             onItemDoubleClick={handleItemDoubleClick}
           />
         </main>

@@ -14,10 +14,10 @@ const Footer: React.FC = () => {
           <a 
             rel="nofollow" 
             target="_blank" 
-            href="https://meku.dev"
+            href="https://github.com/AlexVoin04"
             className="ml-1 text-[#4B67F5] hover:underline"
           >
-            Meku.dev
+            AlexVoin04
           </a>
         </div>
       </div>
