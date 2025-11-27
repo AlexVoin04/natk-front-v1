@@ -3,7 +3,9 @@ import {
   File, 
   Folder, 
   Image, 
-  FileText, 
+  FileText,
+  FileArchive,
+  FileSpreadsheet,
   Music, 
   Video, 
   MoreVertical,
@@ -15,6 +17,17 @@ import {
   Info
 } from 'lucide-react';
 import { format } from 'date-fns';
+
+const fileTypeMap: Record<string, JSX.Element> = {
+  image: <Image size={48} className="text-green-500" />,
+  video: <Video size={48} className="text-red-500" />,
+  audio: <Music size={48} className="text-purple-500" />,
+  text: <FileText size={48} className="text-blue-500" />,
+  pdf: <FileText size={48} className="text-red-800" />,        
+  ppt: <FileText size={48} className="text-orange-500" />,      
+  xls: <FileSpreadsheet size={48} className="text-green-700" />, 
+  archive: <FileArchive size={48} className="text-gray-700" />, 
+};
 
 interface FileItem {
   id: string;
@@ -32,30 +45,26 @@ interface FileTableProps {
   onItemDoubleClick: (item: FileItem) => void;
 }
 
-const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onItemDoubleClick }) => {
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; itemId: string } | null>(null);
-  const [showTooltipFor, setShowTooltipFor] = useState<string | null>(null);
+  const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onItemDoubleClick }) => {
+    const [selectedItems, setSelectedItems] = useState<string[]>([]);
+    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; itemId: string } | null>(null);
+    const [showTooltipFor, setShowTooltipFor] = useState<string | null>(null);
 
-  const getFileIcon = (item: FileItem) => {
-    if (item.type === 'folder') {
-      return <Folder size={48} className="text-[#4B67F5]" />;
-    }
+    const getFileIcon = (item: FileItem) => {
+      if (item.type === 'folder') return <Folder size={48} className="text-[#4B67F5]" />;
 
-    const fileType = item.fileType?.toLowerCase();
-    if (fileType?.includes('image')) {
-      return <Image size={48} className="text-green-500" />;
-    }
-    if (fileType?.includes('video')) {
-      return <Video size={48} className="text-red-500" />;
-    }
-    if (fileType?.includes('audio')) {
-      return <Music size={48} className="text-purple-500" />;
-    }
-    if (fileType?.includes('text') || fileType?.includes('document')) {
-      return <FileText size={48} className="text-blue-500" />;
-    }
-    return <File size={48} className="text-gray-500" />;
+    const fileType = item.fileType?.toLowerCase() || '';
+    
+    if (fileType.includes('image')) return fileTypeMap.image;
+    if (fileType.includes('video')) return fileTypeMap.video;
+    if (fileType.includes('audio')) return fileTypeMap.audio;
+    if (fileType.includes('text')|| fileType.includes('.document')) return fileTypeMap.text;
+    if (fileType.includes('pdf')) return fileTypeMap.pdf;
+    if (fileType.includes('ppt') || fileType.includes('presentation')) return fileTypeMap.ppt;
+    if (fileType.includes('xls') || fileType.includes('spreadsheet')) return fileTypeMap.xls;
+    if (fileType.includes('zip') || fileType.includes('rar') || fileType.includes('7z') || fileType.includes('archive')) return fileTypeMap.archive;
+
+    return <File size={48} className="text-gray-500" />; 
   };
 
   const formatFileSize = (bytes?: number) => {
