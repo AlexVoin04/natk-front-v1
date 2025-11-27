@@ -1,8 +1,17 @@
 import React from 'react';
 import { User, Settings, LogOut } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const Header: React.FC = () => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
@@ -20,19 +29,24 @@ const Header: React.FC = () => {
           <Link to="/trash" className="text-[#3A3A3C] hover:text-[#4B67F5] transition-colors">
             Trash
           </Link>
-          <Link to="/profile" className="text-[#3A3A3C] hover:text-[#4B67F5] transition-colors">
-            Profile
-          </Link>
         </nav>
 
         <div className="flex items-center space-x-4">
+          <span className="text-sm text-[#3A3A3C] hidden sm:block">
+            Welcome, {user?.name}
+          </span>
           <button className="p-2 text-[#3A3A3C] hover:text-[#4B67F5] hover:bg-gray-100 rounded-lg transition-colors">
             <Settings size={20} />
           </button>
-          <button className="p-2 text-[#3A3A3C] hover:text-[#4B67F5] hover:bg-gray-100 rounded-lg transition-colors">
-            <User size={20} />
+          <Link to="/profile" className="text-[#3A3A3C] hover:text-[#4B67F5] transition-colors">
+                      <button className="p-2 text-[#3A3A3C] hover:text-[#4B67F5] hover:bg-gray-100 rounded-lg transition-colors">
+          <User size={20} />
           </button>
-          <button className="p-2 text-[#3A3A3C] hover:text-red-500 hover:bg-gray-100 rounded-lg transition-colors">
+          </Link>
+          <button 
+            onClick={handleLogout}
+            className="p-2 text-[#3A3A3C] hover:text-red-500 hover:bg-gray-100 rounded-lg transition-colors"
+          >
             <LogOut size={20} />
           </button>
         </div>
