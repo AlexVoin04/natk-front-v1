@@ -47,12 +47,25 @@ const Login: React.FC = () => {
     e.preventDefault();
     if (!validate()) return;
     
-    const success = await login(formData.email, formData.password);
-    if (success) {
+    const result  = await login(formData.email, formData.password);
+    if (result.success) {
       toast.success('Login successful!');
       navigate(from, { replace: true });
-    } else {
-      toast.error('Invalid email or password');
+      return;
+    } 
+
+    switch (result.error) {
+      case 'server_unavailable':
+        toast.error("Server is unavailable. Please try again later.");
+        break;
+      case 'invalid_credentials':
+        toast.error("Invalid email or password.");
+        break;
+      case 'invalid_response':
+        toast.error("Unexpected server response.");
+        break;
+      default:
+        toast.error("Something went wrong. Try again.");
     }
   };
 

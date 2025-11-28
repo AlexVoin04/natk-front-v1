@@ -1,6 +1,6 @@
 // src/contexts/AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import api, { getStoredToken, setStoredToken } from '../api/api';
+import api, { getStoredToken, setStoredToken } from '../services/auth';
 import { parseJwt } from '../utils/jwt';
 import type { ReactNode } from 'react';
 
@@ -13,7 +13,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (login: string, password: string) => Promise<boolean>;
+  login: (login: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (
     name: string,
     surname: string,
@@ -67,7 +67,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoading(false);
   }, []);
 
-  const login = async (login: string, password: string) => {
+  const login = async (login: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
     try {
       const resp = await api.post('/auth/login', {
@@ -75,15 +75,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         password: password,
       });
       const newToken = resp.data?.token || resp.data?.accessToken;
-      if (!newToken) throw new Error('No token in response');
+      if (!newToken) {
+        setIsLoading(false);
+        return { success: false, error: 'invalid_response' };
+      }
+
       applyToken(newToken);
       setIsLoading(false);
-      return true;
-    } catch (err) {
-      applyToken(null);
+      return { success: true };
+    } catch (err: any) {
       setIsLoading(false);
-      return false;
-    }
+
+      if (!err.response) {
+        return { success: false, error: 'server_unavailable' };
+      }
+
+      if (err.response.status === 401 || err.response.status === 400) {
+        return { success: false, error: 'invalid_credentials' };
+      }
+
+      return { success: false, error: 'unknown_error' };
+      }
   };
 
   const register = async (

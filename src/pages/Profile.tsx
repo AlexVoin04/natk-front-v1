@@ -1,38 +1,72 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
-import { User, Mail, Calendar, HardDrive, Settings, Save } from 'lucide-react';
+import { User, Mail, Calendar, HardDrive, Settings, Save, Phone } from 'lucide-react';
 import { toast } from 'react-toastify';
+import api from '../services/api';
+import type { UserProfile } from '../services/interfaces';
 
-interface UserProfile {
-  name: string;
-  email: string;
-  joinDate: string;
-  storageUsed: number;
-  storageLimit: number;
-}
 
 const Profile: React.FC = () => {
-  const [profile, setProfile] = useState<UserProfile>({
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    joinDate: 'January 2024',
-    storageUsed: 15.7, // GB
-    storageLimit: 100 // GB
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+
+  const [editForm, setEditForm] = useState({
+    name: '',
+    surname: '',
+    patronymic: '',
+    phoneNumber: '',
+    login: ''
   });
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({
-    name: profile.name,
-    email: profile.email
-  });
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const resp = await api.get<UserProfile>("/users/me");
+        const user = resp.data;
+
+        const mappedProfile: UserProfile = {
+          ...user,
+          joinDate: 'Unknown',
+          storageUsed: 15.7,
+          storageLimit: 100
+        };
+
+        setProfile(mappedProfile);
+
+        setEditForm({
+          name: user.name || '',
+          surname: user.surname || '',
+          patronymic: user.patronymic || '',
+          phoneNumber: user.phoneNumber || '',
+          login: user.login || ''
+        });
+
+      } catch (error: any) {
+        console.error(error);
+        toast.error("Failed to load profile");
+      }
+    };
+
+    loadUser();
+  }, []);
+
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex justify-center items-center text-gray-600">
+        Loading profile...
+      </div>
+    );
+  }
 
   const handleSave = () => {
+    // TODO: добавить запрос на бэкенд PUT /users/me
     setProfile(prev => ({
-      ...prev,
-      name: editForm.name,
-      email: editForm.email
+      ...prev!,
+      ...editForm,
     }));
+
     setIsEditing(false);
     toast.success('Profile updated successfully');
   };
@@ -71,7 +105,13 @@ const Profile: React.FC = () => {
                       <button
                         onClick={() => {
                           setIsEditing(false);
-                          setEditForm({ name: profile.name, email: profile.email });
+                          setEditForm({
+                            name: profile.name,
+                            surname: profile.surname,
+                            patronymic: profile.patronymic || '',
+                            phoneNumber: profile.phoneNumber || '',
+                            login: profile.login
+                          });
                         }}
                         className="px-4 py-2 text-[#3A3A3C] hover:bg-gray-100 rounded-xl transition-colors"
                       >
@@ -89,53 +129,95 @@ const Profile: React.FC = () => {
                 </div>
 
                 <div className="space-y-6">
+                  {/* Login (email) */}
                   <div>
-                    <label className="block text-sm font-medium text-[#3A3A3C] mb-2">
-                      Full Name
-                    </label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editForm.name}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B67F5] focus:border-transparent"
-                      />
-                    ) : (
-                      <div className="flex items-center space-x-3">
-                        <User size={20} className="text-gray-400" />
-                        <span className="text-[#3A3A3C]">{profile.name}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-[#3A3A3C] mb-2">
-                      Email Address
-                    </label>
+                    <label className="block text-sm font-medium text-[#3A3A3C] mb-2">Email (login)</label>
                     {isEditing ? (
                       <input
                         type="email"
-                        value={editForm.email}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B67F5] focus:border-transparent"
+                        value={editForm.login}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, login: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B67F5]"
                       />
                     ) : (
                       <div className="flex items-center space-x-3">
                         <Mail size={20} className="text-gray-400" />
-                        <span className="text-[#3A3A3C]">{profile.email}</span>
+                        <span>{profile.login}</span>
                       </div>
                     )}
                   </div>
 
+                  {/* Name */}
                   <div>
-                    <label className="block text-sm font-medium text-[#3A3A3C] mb-2">
-                      Member Since
-                    </label>
-                    <div className="flex items-center space-x-3">
-                      <Calendar size={20} className="text-gray-400" />
-                      <span className="text-[#3A3A3C]">{profile.joinDate}</span>
+                    <label className="block text-sm font-medium text-[#3A3A3C] mb-2">Name</label>
+                    {isEditing ? (
+                      <input
+                        value={editForm.name}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B67F5]"
+                      />
+                    ) : (
+                      <span>{profile.name}</span>
+                    )}
+                  </div>
+
+                  {/* Surname */}
+                  <div>
+                    <label className="block text-sm font-medium text-[#3A3A3C] mb-2">Surname</label>
+                    {isEditing ? (
+                      <input
+                        value={editForm.surname}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, surname: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B67F5]"
+                      />
+                    ) : (
+                      <span>{profile.surname}</span>
+                    )}
+                  </div>
+
+                  {/* Patronymic */}
+                  <div>
+                    <label className="block text-sm font-medium text-[#3A3A3C] mb-2">Patronymic</label>
+                    {isEditing ? (
+                      <input
+                        value={editForm.patronymic}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, patronymic: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B67F5]"
+                      />
+                    ) : (
+                      <span>{profile.patronymic ?? '—'}</span>
+                    )}
+                  </div>
+
+                  {/* Phone */}
+                  <div>
+                    <label className="block text-sm font-medium text-[#3A3A3C] mb-2">Phone Number</label>
+                    {isEditing ? (
+                      <input
+                        value={editForm.phoneNumber}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B67F5]"
+                      />
+                    ) : (
+                      <div className="flex items-center space-x-3">
+                        <Phone size={20} className="text-gray-400" />
+                        <span>{profile.phoneNumber ?? '—'}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Roles */}
+                  <div>
+                    <label className="block text-sm font-medium text-[#3A3A3C] mb-2">Roles</label>
+                    <div className="flex flex-wrap gap-2">
+                      {profile.roles.map(r => (
+                        <span key={r} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-xl text-sm">
+                          {r}
+                        </span>
+                      ))}
                     </div>
                   </div>
+
                 </div>
               </div>
 
