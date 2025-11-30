@@ -112,14 +112,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         login: email,
         password,
         name,
-        surname,       // optional fields - adjust form to include surname if needed
+        surname,       
         patronymic,
-        roles: ['TEACHER'] // change as needed
+        roles: ['TEACHER'] 
       });
-      // After successful register — optionally auto-login:
       const logged = await login(email, password);
       setIsLoading(false);
-      return { success: logged };
+      return { success: logged};
     } catch (err: any) {
       setIsLoading(false);
       const serverMessage =
@@ -133,7 +132,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = () => {
     applyToken(null);
-    // возможно, вызов на бэкенд для invalidate — если реализуете
+    // возможно, вызов на бэкенд для invalidate 
   };
 
   const value: AuthContextType = {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import { User, Mail, Calendar, HardDrive, Settings, Save, Phone } from 'lucide-react';
+import { IMaskInput } from 'react-imask';
 import { toast } from 'react-toastify';
 import api from '../services/api';
 import type { UserProfile } from '../services/interfaces';
@@ -11,13 +12,87 @@ const Profile: React.FC = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
-  const [editForm, setEditForm] = useState({
+const [editForm, setEditForm] = useState({
     name: '',
     surname: '',
     patronymic: '',
     phoneNumber: '',
     login: ''
   });
+
+const defaultErrors = {
+  name: "",
+  surname: "",
+  patronymic: "",
+  phoneNumber: "",
+};
+
+const [errors, setErrors] = useState(defaultErrors);
+
+const validateField = (field: string, value: string) => {
+  switch (field) {
+    case "name":
+    case "surname":
+      if (!value.trim()) return "This field is required";
+      if (!/^[A-Za-zА-Яа-яЁё-]+$/.test(value)) return "Only letters and '-' allowed";
+      return "";
+
+    case "patronymic":
+      if (value && !/^[A-Za-zА-Яа-яЁё-]+$/.test(value))
+        return "Only letters and '-' allowed";
+      return "";
+
+    case "phoneNumber":
+      if (value && !/^[0-9+\-() ]+$/.test(value))
+        return "Phone contains invalid characters";
+      return "";
+
+    default:
+      return "";
+  }
+};
+
+const validateAll = () => {
+  const newErrors: any = {};
+
+  Object.entries(editForm).forEach(([field, value]) => {
+    if (field === "login") return; // login не валидируем
+    newErrors[field] = validateField(field, value);
+  });
+
+  setErrors(newErrors);
+
+  return Object.values(newErrors).every((e) => e === "");
+};
+
+const isChanged = () => {
+  if (!profile) return false;
+
+  return (
+    editForm.name !== profile.name ||
+    editForm.surname !== profile.surname ||
+    editForm.patronymic !== (profile.patronymic || '') ||
+    editForm.phoneNumber !== (profile.phoneNumber || '') ||
+    editForm.login !== profile.login
+  );
+};
+
+const handleChange = (field: string, value: string) => {
+  if (["name", "surname", "patronymic"].includes(field)) {
+    value = value.replace(/[^A-Za-zА-Яа-яЁё-]/g, "");
+  }
+
+  if (field === "phoneNumber") {
+    value = value.replace(/[^0-9+\-() ]/g, "");
+  }
+
+  setEditForm((prev) => ({ ...prev, [field]: value }));
+
+  setErrors((prev) => ({
+    ...prev,
+    [field]: validateField(field, value),
+  }));
+};
 
   useEffect(() => {
     const loadUser = async () => {
@@ -63,8 +138,18 @@ const Profile: React.FC = () => {
   const handleSave = async () => {
     if (!profile) return;
 
+    if (!validateAll()) {
+      toast.error("Please fix the errors");
+      return;
+    }
+
+    if (!isChanged()) {
+      toast.info("No changes to save");
+      return;
+    }
+
     try {
-      const resp = await api.put(`/users/${profile.id}`, {
+      const resp = await api.put<UserProfile>(`/users/${profile.id}`, {
         name: editForm.name,
         surname: editForm.surname,
         patronymic: editForm.patronymic || null,
@@ -72,12 +157,13 @@ const Profile: React.FC = () => {
         roles: undefined // обычный пользователь не меняет роли
       });
 
-      const updated = resp.data;
+      const updated: UserProfile = resp.data;
 
-      setProfile(prev => ({
-        ...prev!,
-        ...updated
-      }));
+      setProfile(prev =>
+        prev
+          ? { ...prev, ...updated }
+          : updated
+      );
 
       setIsEditing(false);
       toast.success("Profile updated successfully");
@@ -136,6 +222,8 @@ const Profile: React.FC = () => {
                             phoneNumber: profile.phoneNumber || '',
                             login: profile.login
                           });
+
+                          setErrors(defaultErrors);
                         }}
                         className="px-4 py-2 text-[#3A3A3C] hover:bg-gray-100 rounded-xl transition-colors"
                       >
@@ -160,8 +248,8 @@ const Profile: React.FC = () => {
                       <input
                         type="email"
                         value={editForm.login}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, login: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B67F5]"
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-xl bg-gray-100 text-gray-500 cursor-not-allowed"
                       />
                     ) : (
                       <div className="flex items-center space-x-3">
@@ -175,11 +263,18 @@ const Profile: React.FC = () => {
                   <div>
                     <label className="block text-sm font-medium text-[#3A3A3C] mb-2">Surname</label>
                     {isEditing ? (
-                      <input
-                        value={editForm.surname}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, surname: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B67F5]"
-                      />
+                      <>
+                        <input
+                          value={editForm.surname}
+                          onChange={(e) => handleChange("surname", e.target.value)}
+                          className={`w-full px-3 py-2 border rounded-xl focus:outline-none ${
+                            errors.surname ? "border-red-500" : "border-gray-300 focus:ring-2 focus:ring-[#4B67F5]"
+                          }`}
+                        />
+                        {errors.surname && (
+                          <p className="text-red-500 text-sm mt-1">{errors.surname}</p>
+                        )}
+                      </>
                     ) : (
                       <span>{profile.surname}</span>
                     )}
@@ -189,11 +284,16 @@ const Profile: React.FC = () => {
                   <div>
                     <label className="block text-sm font-medium text-[#3A3A3C] mb-2">Name</label>
                     {isEditing ? (
-                      <input
-                        value={editForm.name}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B67F5]"
-                      />
+                      <>
+                        <input
+                          value={editForm.name}
+                          onChange={(e) => handleChange("name", e.target.value)}
+                          className={`w-full px-3 py-2 border rounded-xl focus:outline-none ${
+                            errors.name ? "border-red-500" : "border-gray-300 focus:ring-2 focus:ring-[#4B67F5]"
+                          }`}
+                        />
+                        {errors.name && (<p className="text-red-500 text-sm mt-1">{errors.name}</p>)}
+                      </>
                     ) : (
                       <span>{profile.name}</span>
                     )}
@@ -203,11 +303,16 @@ const Profile: React.FC = () => {
                   <div>
                     <label className="block text-sm font-medium text-[#3A3A3C] mb-2">Patronymic</label>
                     {isEditing ? (
-                      <input
-                        value={editForm.patronymic}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, patronymic: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B67F5]"
-                      />
+                      <>
+                        <input
+                          value={editForm.patronymic}
+                          onChange={(e) => handleChange("patronymic", e.target.value)}
+                          className={`w-full px-3 py-2 border rounded-xl focus:outline-none ${
+                            errors.patronymic ? "border-red-500" : "border-gray-300 focus:ring-2 focus:ring-[#4B67F5]"
+                          }`}
+                        />
+                        {errors.patronymic && (<p className="text-red-500 text-sm mt-1">{errors.patronymic}</p>)}
+                      </>
                     ) : (
                       <span>{profile.patronymic ?? '—'}</span>
                     )}
@@ -217,11 +322,18 @@ const Profile: React.FC = () => {
                   <div>
                     <label className="block text-sm font-medium text-[#3A3A3C] mb-2">Phone Number</label>
                     {isEditing ? (
-                      <input
-                        value={editForm.phoneNumber}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, phoneNumber: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B67F5]"
-                      />
+                      <>
+                        <IMaskInput
+                          mask="+7 (000) 000-00-00"
+                          value={editForm.phoneNumber}
+                          unmask={false} // Возвращает "чистое" значение без маски
+                          onAccept={(value: string) => handleChange("phoneNumber", value)}
+                          className={`w-full px-3 py-2 border rounded-xl focus:outline-none ${
+                            errors.phoneNumber ? "border-red-500" : "border-gray-300 focus:ring-2 focus:ring-[#4B67F5]"
+                          }`}
+                        />
+                        {errors.phoneNumber && (<p className="text-red-500 text-sm mt-1">{errors.phoneNumber}</p>)}
+                      </>
                     ) : (
                       <div className="flex items-center space-x-3">
                         <Phone size={20} className="text-gray-400" />
