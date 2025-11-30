@@ -32,8 +32,8 @@ async function refreshToken(): Promise<string | null> {
     if (newToken) setStoredToken(newToken);
     return newToken;
   } catch (err) {
-    // если refresh не удался — очистим
     setStoredToken(null);
+    logoutAndRedirect();
     return null;
   }
 }
@@ -98,3 +98,8 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+export function logoutAndRedirect() {
+  localStorage.removeItem('access_token');
+  window.location.href = '/login';
+}

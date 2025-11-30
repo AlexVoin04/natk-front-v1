@@ -1,6 +1,6 @@
 
 import axios from "axios";
-import { getStoredToken } from "./auth";
+import { getStoredToken, logoutAndRedirect } from "./auth";
 
 const BASE_URL = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
 
@@ -19,6 +19,16 @@ api.interceptors.request.use(
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+api.interceptors.response.use(
+  (r) => r,
+  async (error) => {
+    if (error.response?.status === 401) {
+      logoutAndRedirect(); 
+    }
+    return Promise.reject(error);
+  }
 );
 
 export default api;

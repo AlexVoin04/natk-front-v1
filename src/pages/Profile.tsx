@@ -60,15 +60,39 @@ const Profile: React.FC = () => {
     );
   }
 
-  const handleSave = () => {
-    // TODO: добавить запрос на бэкенд PUT /users/me
-    setProfile(prev => ({
-      ...prev!,
-      ...editForm,
-    }));
+  const handleSave = async () => {
+    if (!profile) return;
 
-    setIsEditing(false);
-    toast.success('Profile updated successfully');
+    try {
+      const resp = await api.put(`/users/${profile.id}`, {
+        name: editForm.name,
+        surname: editForm.surname,
+        patronymic: editForm.patronymic || null,
+        phoneNumber: editForm.phoneNumber || null,
+        roles: undefined // обычный пользователь не меняет роли
+      });
+
+      const updated = resp.data;
+
+      setProfile(prev => ({
+        ...prev!,
+        ...updated
+      }));
+
+      setIsEditing(false);
+      toast.success("Profile updated successfully");
+
+    } catch (error: any) {
+      console.error(error);
+
+      if (error.response?.status === 403) {
+        toast.error("You are not allowed to edit this profile");
+      } else if (error.code === "ERR_NETWORK") {
+        toast.error("Server is unavailable");
+      } else {
+        toast.error("Failed to update profile");
+      }
+    }
   };
 
   const storagePercentage = (profile.storageUsed / profile.storageLimit) * 100;
@@ -147,20 +171,6 @@ const Profile: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Name */}
-                  <div>
-                    <label className="block text-sm font-medium text-[#3A3A3C] mb-2">Name</label>
-                    {isEditing ? (
-                      <input
-                        value={editForm.name}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B67F5]"
-                      />
-                    ) : (
-                      <span>{profile.name}</span>
-                    )}
-                  </div>
-
                   {/* Surname */}
                   <div>
                     <label className="block text-sm font-medium text-[#3A3A3C] mb-2">Surname</label>
@@ -172,6 +182,20 @@ const Profile: React.FC = () => {
                       />
                     ) : (
                       <span>{profile.surname}</span>
+                    )}
+                  </div>
+
+                  {/* Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-[#3A3A3C] mb-2">Name</label>
+                    {isEditing ? (
+                      <input
+                        value={editForm.name}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B67F5]"
+                      />
+                    ) : (
+                      <span>{profile.name}</span>
                     )}
                   </div>
 
