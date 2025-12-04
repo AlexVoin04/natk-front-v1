@@ -10,3 +10,10 @@ export interface UserProfile {
   storageUsed: number;
   storageLimit: number;
 }
+
+export interface FolderTreeDto {
+  id: string;
+  name: string;
+  depth: number;
+  children: FolderTreeDto[];
+}
