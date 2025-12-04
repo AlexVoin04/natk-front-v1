@@ -15,6 +15,7 @@ type Props = {
 const Sidebar: React.FC<Props> = ({ onFolderClick }) => {
   const [folders, setFolders] = useState<FolderNode[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const location = useLocation();
 
   useEffect(() => {
@@ -63,6 +64,7 @@ const Sidebar: React.FC<Props> = ({ onFolderClick }) => {
   const handleClickNode = (node: FolderNode) => {
     // "all" -> null, иначе id
     const id = node.id === 'all' ? null : node.id;
+    setSelectedFolder(id);
     onFolderClick?.(id);
   };
 
@@ -70,7 +72,12 @@ const Sidebar: React.FC<Props> = ({ onFolderClick }) => {
   return nodes.map(node => (
     <div key={node.id} className="select-none">
       <div
-        className="flex items-center py-2 px-3 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"
+        className={`flex items-center py-2 px-3 rounded-lg cursor-pointer transition-colors
+          ${selectedFolder === (node.id === 'all' ? null : node.id)
+            ? 'bg-blue-100 text-blue-700'
+            : 'hover:bg-gray-100 text-[#3A3A3C]'
+          }
+        `}
         style={{ paddingLeft: `${12 + level * 16}px` }}
         onClick={() => handleClickNode(node)}
       >

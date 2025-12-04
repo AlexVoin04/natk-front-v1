@@ -107,13 +107,13 @@ const Home: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="h-screen flex flex-col bg-gray-50">
       <Header />
       
-      <div className="flex flex-1">
+      <div className="flex flex-1 overflow-hidden">
         <Sidebar onFolderClick={handleFolderClick} />
         
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-6 flex flex-col overflow-hidden">
           <Breadcrumbs items={breadcrumbItems} />
           
           <ActionBar
@@ -123,17 +123,19 @@ const Home: React.FC = () => {
             onViewModeChange={setViewMode}
           />
 
-          {loading ? (
-            <div className="p-6">
-              <p className="text-gray-500">Loading...</p>
-            </div>
-          ) : (
-            <FileTable
-              items={files}
-              viewMode={viewMode}
-              onItemDoubleClick={handleItemDoubleClick}
-            />
-          )}
+          <div className="flex-1 overflow-y-auto mt-4">
+            {loading ? (
+              <div className="p-6">
+                <p className="text-gray-500">Loading...</p>
+              </div>
+            ) : (
+              <FileTable
+                items={files}
+                viewMode={viewMode}
+                onItemDoubleClick={handleItemDoubleClick}
+              />
+            )}
+          </div>
         </main>
       </div>
 
