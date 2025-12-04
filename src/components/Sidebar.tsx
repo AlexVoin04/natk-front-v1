@@ -8,8 +8,11 @@ interface FolderNode extends FolderTreeDto {
   isExpanded?: boolean;
 }
 
+type Props = {
+  onFolderClick?: (folderId: string | null) => void;
+};
 
-const Sidebar: React.FC = () => {
+const Sidebar: React.FC<Props> = ({ onFolderClick }) => {
   const [folders, setFolders] = useState<FolderNode[]>([]);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
@@ -27,7 +30,15 @@ const Sidebar: React.FC = () => {
             children: n.children ? addFlags(n.children) : []
           }));
 
-        setFolders(addFlags(data));
+        const root: FolderNode = {
+          id: "all",
+          name: "Все файлы",
+          depth: 0,
+          isExpanded: true,
+          children: addFlags(data)
+        };
+
+        setFolders([root]);
       } catch (e) {
         console.error("Failed to load folder tree", e);
       } finally {
@@ -49,15 +60,19 @@ const Sidebar: React.FC = () => {
     setFolders(update(folders));
   };
 
+  const handleClickNode = (node: FolderNode) => {
+    // "all" -> null, иначе id
+    const id = node.id === 'all' ? null : node.id;
+    onFolderClick?.(id);
+  };
+
   const renderTree = (nodes: FolderNode[], level = 0): JSX.Element[] => {
   return nodes.map(node => (
     <div key={node.id} className="select-none">
       <div
         className="flex items-center py-2 px-3 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"
         style={{ paddingLeft: `${12 + level * 16}px` }}
-        onClick={() => {
-          alert("Folder clicked: " + node.id)
-        }}
+        onClick={() => handleClickNode(node)}
       >
         {/* Кнопка раскрытия */}
         {node.children.length > 0 ? (

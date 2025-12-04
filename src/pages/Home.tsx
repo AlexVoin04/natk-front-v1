@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import Breadcrumbs from '../components/Breadcrumbs';
@@ -8,6 +8,7 @@ import CreateFolderDialog from '../components/CreateFolderDialog';
 import UploadDialog from '../components/UploadDialog';
 import Footer from '../components/Footer';
 import { toast } from 'react-toastify';
+import { fetchFolderItems } from '../services/storage';
 
 interface FileItem {
   id: string;
@@ -19,63 +20,54 @@ interface FileItem {
   updatedAt: Date;
 }
 
-const mockFiles: FileItem[] = [
-  {
-    id: '1',
-    name: 'Documents',
-    type: 'folder',
-    createdAt: new Date('2024-01-15'),
-    updatedAt: new Date('2024-12-01')
-  },
-  {
-    id: '2',
-    name: 'Images',
-    type: 'folder',
-    createdAt: new Date('2024-02-10'),
-    updatedAt: new Date('2024-11-28')
-  },
-  {
-    id: '3',
-    name: 'Project Proposal.pdf',
-    type: 'file',
-    fileType: 'application/pdf',
-    size: 2048576,
-    createdAt: new Date('2024-11-20'),
-    updatedAt: new Date('2024-11-25')
-  },
-  {
-    id: '4',
-    name: 'Vacation Photo.jpg',
-    type: 'file',
-    fileType: 'image/jpeg',
-    size: 5242880,
-    createdAt: new Date('2024-10-15'),
-    updatedAt: new Date('2024-10-15')
-  },
-  {
-    id: '5',
-    name: 'Meeting Recording.mp4',
-    type: 'file',
-    fileType: 'video/mp4',
-    size: 104857600,
-    createdAt: new Date('2024-12-01'),
-    updatedAt: new Date('2024-12-01')
-  }
-];
-
 const Home: React.FC = () => {
-  const [files, setFiles] = useState<FileItem[]>(mockFiles);
+  const [files, setFiles] = useState<FileItem[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
 
-  const breadcrumbItems = [
-    { name: 'My Files', path: '/' }
-  ];
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null); // null = root ("Все файлы")
+  const [currentPath, setCurrentPath] = useState<string>('Все файлы');
+  const [loading, setLoading] = useState(false);
+
+  // При смене папки — загружаем её содержимое
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const resp = await fetchFolderItems(currentFolderId);
+        setCurrentPath(resp.path || 'Все файлы');
+
+        const mapped: FileItem[] = resp.items.map(it => ({
+          id: it.id,
+          name: it.name,
+          type: it.type === 'folder' ? 'folder' : 'file',
+          fileType: it.type === 'folder' ? undefined : it.type,
+          size: undefined,
+          createdAt: new Date(it.createdAt),
+          updatedAt: it.updatedAt ? new Date(it.updatedAt) : new Date(it.createdAt)
+        }));
+
+        setFiles(mapped);
+      } catch (e) {
+        console.error("Failed to load folder items", e);
+        toast.error("Failed to load folder contents");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, [currentFolderId]);
+
+  const breadcrumbItems = currentPath.split('/').map((name, idx, arr) => {
+    // вычитслять путь надо
+    return { name, path: '/' }; // путь сейчас не используется
+  });
 
   const handleItemDoubleClick = (item: FileItem) => {
     if (item.type === 'folder') {
-      toast.info(`Opening folder: ${item.name}`);
+      setCurrentFolderId(item.id);
     } else {
       toast.info(`Opening file: ${item.name}`);
     }
@@ -109,12 +101,17 @@ const Home: React.FC = () => {
     toast.success(`${uploadedFiles.length} file(s) uploaded successfully`);
   };
 
+    // прокидываем в сайдбар — при клике на папку будет устанавливаться currentFolderId
+  const handleFolderClick = (folderId: string | null) => {
+    setCurrentFolderId(folderId);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
       
       <div className="flex flex-1">
-        <Sidebar />
+        <Sidebar onFolderClick={handleFolderClick} />
         
         <main className="flex-1 p-6">
           <Breadcrumbs items={breadcrumbItems} />
@@ -126,11 +123,17 @@ const Home: React.FC = () => {
             onViewModeChange={setViewMode}
           />
 
-          <FileTable
-            items={files}
-            viewMode={viewMode}
-            onItemDoubleClick={handleItemDoubleClick}
-          />
+          {loading ? (
+            <div className="p-6">
+              <p className="text-gray-500">Loading...</p>
+            </div>
+          ) : (
+            <FileTable
+              items={files}
+              viewMode={viewMode}
+              onItemDoubleClick={handleItemDoubleClick}
+            />
+          )}
         </main>
       </div>
 
