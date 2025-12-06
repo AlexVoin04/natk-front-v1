@@ -8,8 +8,7 @@ import CreateFolderDialog from '../components/CreateFolderDialog';
 import UploadDialog from '../components/UploadDialog';
 import Footer from '../components/Footer';
 import { toast } from 'react-toastify';
-import { fetchFolderItems } from '../services/storage';
-import { downloadFile } from '../services/storage'
+import { fetchFolderItems, downloadFile, uploadFileRequest } from '../services/storage';
 
 interface FileItem {
   id: string;
@@ -17,9 +16,20 @@ interface FileItem {
   type: 'folder' | 'file';
   fileType?: string;
   size?: number;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string | null;
+  updatedAt: string | null;
 }
+
+  const mapItems = (items: any[]): FileItem[] =>
+    items.map(it => ({
+      id: it.id,
+      name: it.name,
+      type: it.type === 'folder' ? 'folder' : 'file',
+      fileType: it.type === 'folder' ? undefined : it.type,
+      size: it.size,
+      createdAt: it.createdAt,
+      updatedAt: it.updatedAt
+    }));
 
 const Home: React.FC = () => {
   const [files, setFiles] = useState<FileItem[]>([]);
@@ -39,17 +49,7 @@ const Home: React.FC = () => {
         const resp = await fetchFolderItems(currentFolderId);
         setCurrentPath(resp.path || 'Все файлы');
 
-        const mapped: FileItem[] = resp.items.map(it => ({
-          id: it.id,
-          name: it.name,
-          type: it.type === 'folder' ? 'folder' : 'file',
-          fileType: it.type === 'folder' ? undefined : it.type,
-          size: undefined,
-          createdAt: new Date(it.createdAt),
-          updatedAt: it.updatedAt ? new Date(it.updatedAt) : new Date(it.createdAt)
-        }));
-
-        setFiles(mapped);
+        setFiles(mapItems(resp.items));
 
         const parts = (resp.path || 'Все файлы').split('/').filter(Boolean);
         const crumbs = parts.map((name, idx) => {
@@ -93,28 +93,54 @@ const Home: React.FC = () => {
       id: Date.now().toString(),
       name,
       type: 'folder',
-      createdAt: new Date(),
-      updatedAt: new Date()
+      createdAt: new Date().toDateString(),
+      updatedAt: new Date().toDateString()
     };
     
     setFiles(prev => [newFolder, ...prev]);
     toast.success(`Folder "${name}" created successfully`);
   };
 
-  const handleUploadFiles = (uploadedFiles: File[]) => {
-    const newFiles: FileItem[] = uploadedFiles.map(file => ({
-      id: Date.now().toString() + Math.random(),
-      name: file.name,
-      type: 'file',
-      fileType: file.type,
-      size: file.size,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }));
+const handleUploadFiles = async (uploadedFiles: File[]) => {
+  try {
+    const results = await Promise.allSettled(
+      uploadedFiles.map(file => 
+        uploadFileRequest(file, file.name, currentFolderId)
+      )
+    );
 
-    setFiles(prev => [...newFiles, ...prev]);
-    toast.success(`${uploadedFiles.length} file(s) uploaded successfully`);
-  };
+    const ok = results.filter(r => r.status === "fulfilled").length;
+    const fail = results.filter(r => r.status === "rejected").length;
+
+    // --- Успешные загрузки ---
+    if (ok > 0) {
+      toast.success(`${ok} file(s) uploaded successfully`);
+    }
+
+    // --- Ошибки по файлам ---
+    if (fail > 0) {
+      toast.error(`${fail} file(s) failed to upload`);
+
+      // Выводим ошибки конкретных файлов
+      results.forEach((r, index) => {
+        if (r.status === "rejected") {
+          const file = uploadedFiles[index];
+          toast.error(`Failed: ${file.name}`);
+        }
+      });
+    }
+
+    // обновление файлов, если хоть что-то загрузилось
+    if (ok > 0) {
+      const resp = await fetchFolderItems(currentFolderId);
+      setFiles(mapItems(resp.items));
+    }
+
+  } catch (e) {
+    console.error(e);
+    toast.error("Unexpected error while uploading");
+  }
+};
 
     // прокидываем в сайдбар — при клике на папку будет устанавливаться currentFolderId
   const handleFolderClick = (folderId: string | null) => {

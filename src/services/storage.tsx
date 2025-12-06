@@ -82,3 +82,20 @@ if (disposition) {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+export async function uploadFileRequest(
+  file: File,
+  name: string,
+  folderId: string | null
+) {
+  const formData = new FormData();
+  formData.append("name", name);
+  if (folderId) formData.append("folderId", folderId);
+  formData.append("fileData", file);
+
+  const resp = await api.post("/storage/files", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+
+  return resp.data;
+}

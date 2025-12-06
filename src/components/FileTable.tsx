@@ -35,8 +35,8 @@ interface FileItem {
   type: 'folder' | 'file';
   fileType?: string;
   size?: number;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string | null;
+  updatedAt: string | null;
 }
 
 interface FileTableProps {
@@ -74,6 +74,13 @@ interface FileTableProps {
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
     return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
   };
+
+  const safeFormatDate = (dateString?: string | null) => {
+  if (!dateString) return "—";
+  const d = new Date(dateString);
+  if (isNaN(d.getTime())) return "—";
+  return format(d, "dd.MM.yyyy HH:mm");
+};
 
   const handleContextMenu = (e: React.MouseEvent, itemId: string) => {
     e.preventDefault();
@@ -144,7 +151,7 @@ interface FileTableProps {
                   {item.name}
                 </span>
                 <span className="text-xs text-gray-500 mt-1">
-                  {format(item.updatedAt, 'MMM dd, yyyy')}
+                  {safeFormatDate(item.createdAt)}
                 </span>
               </div>
               {showTooltipFor === item.id && (
@@ -270,10 +277,10 @@ interface FileTableProps {
                   {formatFileSize(item.size)}
                 </td>
                 <td className="py-3 px-4 text-[#3A3A3C] text-sm">
-                  {format(item.updatedAt, 'MMM dd, yyyy HH:mm')}
+                  {safeFormatDate(item.updatedAt)}
                 </td>
                 <td className="py-3 px-4 text-[#3A3A3C] text-sm">
-                  {format(item.createdAt, 'MMM dd, yyyy HH:mm')}
+                  {safeFormatDate(item.createdAt)}
                 </td>
                 <td className="py-3 px-4">
                   <button
