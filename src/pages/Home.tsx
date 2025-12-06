@@ -9,6 +9,7 @@ import UploadDialog from '../components/UploadDialog';
 import Footer from '../components/Footer';
 import { toast } from 'react-toastify';
 import { fetchFolderItems } from '../services/storage';
+import { downloadFile } from '../services/storage'
 
 interface FileItem {
   id: string;
@@ -150,6 +151,7 @@ const Home: React.FC = () => {
                 items={files}
                 viewMode={viewMode}
                 onItemDoubleClick={handleItemDoubleClick}
+                onDownloadFile={(id) => downloadFile(id)}
               />
             )}
           </div>

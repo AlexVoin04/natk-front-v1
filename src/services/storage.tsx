@@ -1,5 +1,6 @@
 import api from "./api";
 import type { FolderTreeDto } from "./interfaces";
+import { toast } from "react-toastify";
 
 export async function fetchFolderTree(): Promise<FolderTreeDto[]> {
   const resp = await api.get<FolderTreeDto[]>("/storage/folders/tree");
@@ -30,4 +31,54 @@ export async function fetchFolderItems(folderId?: string | null): Promise<Folder
   const params = folderId ? { folderId } : {};
   const resp = await api.get<FolderContentResponseDto>("/storage/items", { params });
   return resp.data;
+}
+
+export async function downloadFile(fileId: string): Promise<void> {
+  const resp = await api.get(`/storage/files/${fileId}/download`, {
+    responseType: "blob", 
+    validateStatus: () => true
+  });
+
+  // --- Проверяем, не ошибка ли это ---
+  const contentType = resp.headers["content-type"];
+  // если сервер вернул ошибку с JSON внутри blob
+  if (resp.status >= 400) {
+    if (contentType?.includes("application/json")) {
+      const text = await resp.data.text();
+      const json = JSON.parse(text);
+      toast.error(json.message || "Ошибка скачивания файла");
+    } else {
+      toast.error(`Ошибка скачивания файла (${resp.status})`);
+    }
+    return;
+  }
+
+  // --- OK: скачиваем файл ---
+
+  const blob = new Blob([resp.data]);
+  const url = window.URL.createObjectURL(blob);
+
+  // достаём имя файла из заголовков
+  let filename = "file";
+
+const disposition = resp.headers["content-disposition"];
+if (disposition) {
+  // 1. filename*=UTF-8''имя.ext
+  let utf8name = disposition.match(/filename\*=\s*UTF-8''(.+?)(;|$)/);
+  if (utf8name) {
+    filename = decodeURIComponent(utf8name[1]);
+  } else {
+    // 2. filename="имя.ext"
+    let quoted = disposition.match(/filename="(.+?)"/);
+    if (quoted) {
+      filename = quoted[1];
+    }
+  }
+}
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }

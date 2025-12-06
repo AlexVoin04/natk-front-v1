@@ -43,9 +43,10 @@ interface FileTableProps {
   items: FileItem[];
   viewMode: 'grid' | 'list';
   onItemDoubleClick: (item: FileItem) => void;
+  onDownloadFile: (id: string) => void;
 }
 
-  const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onItemDoubleClick }) => {
+  const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onItemDoubleClick, onDownloadFile }) => {
     const [selectedItems, setSelectedItems] = useState<string[]>([]);
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; itemId: string } | null>(null);
     const [showTooltipFor, setShowTooltipFor] = useState<string | null>(null);
@@ -182,7 +183,12 @@ interface FileTableProps {
             style={getContextMenuPosition()}
             onMouseLeave={() => setContextMenu(null)}
           >
-            <button className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-sm text-[#3A3A3C]">
+            <button className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-sm text-[#3A3A3C]"
+              onClick={() => {
+                onDownloadFile(contextMenu.itemId);
+                setContextMenu(null);
+              }}
+            >
               <Download size={16} />
               <span>Download</span>
             </button>
@@ -292,7 +298,12 @@ interface FileTableProps {
           style={getContextMenuPosition()}
           onMouseLeave={() => setContextMenu(null)}
         >
-          <button className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-sm text-[#3A3A3C]">
+          <button className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-sm text-[#3A3A3C]"
+            onClick={() => {
+              onDownloadFile(contextMenu.itemId);
+              setContextMenu(null);
+            }}
+          >
             <Download size={16} />
             <span>Download</span>
           </button>
