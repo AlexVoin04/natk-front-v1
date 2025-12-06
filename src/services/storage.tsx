@@ -16,6 +16,11 @@ export type FolderContentResponseDto = {
     createdAt: string;
     updatedAt: string | null;
   }>;
+  /**
+   * надо фиксить бэкенд для крошек:
+   * pathIds: string[]; // ['all', 'id1', 'id2']
+   * pathNames: string[]; // ['Все файлы', 'Папка1', 'Папка2']
+   */
 };
 
 /**

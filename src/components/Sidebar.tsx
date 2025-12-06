@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronRight, ChevronDown, Folder, FolderOpen, Home, Trash2 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { fetchFolderTree } from '../services/storage';
@@ -12,10 +13,50 @@ type Props = {
   onFolderClick?: (folderId: string | null) => void;
 };
 
+// Портальный тултип
+const Tooltip: React.FC<{ text: string; target: HTMLElement | null }> = ({ text, target }) => {
+  if (!target) return null;
+
+  const rect = target.getBoundingClientRect();
+
+    // Показываем тултип справа от элемента, с небольшим отступом
+  const top = rect.top + rect.height / 2;
+  const left = rect.right + 8; // справа от элемента, 8px отступ
+
+  return createPortal(
+    <div
+      style={{
+        position: 'fixed',
+        top: top,
+        left: left,
+        transform: 'translateY(-50%)',
+      }}
+      className="px-2 py-1 bg-black text-white text-xs rounded-md shadow-lg whitespace-nowrap z-50 pointer-events-none"
+    >
+      {text}
+      {/* Стрелка */}
+      <div
+        style={{
+          position: 'absolute',
+          left: '-4px',
+          top: '50%',
+          transform: 'translateY(-50%) rotate(45deg)',
+          width: '8px',
+          height: '8px',
+          backgroundColor: 'black',
+        }}
+      />
+    </div>,
+    document.body
+  );
+};
+
 const Sidebar: React.FC<Props> = ({ onFolderClick }) => {
   const [folders, setFolders] = useState<FolderNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+  const [tooltipTarget, setTooltipTarget] = useState<HTMLElement | null>(null);
+  const [tooltipText, setTooltipText] = useState('');
   const location = useLocation();
 
   useEffect(() => {
@@ -68,6 +109,15 @@ const Sidebar: React.FC<Props> = ({ onFolderClick }) => {
     onFolderClick?.(id);
   };
 
+  const handleMouseEnter = (e: React.MouseEvent, text: string) => {
+    setTooltipTarget(e.currentTarget as HTMLElement);
+    setTooltipText(text);
+  };
+  const handleMouseLeave = () => {
+    setTooltipTarget(null);
+    setTooltipText('');
+  };
+
   const renderTree = (nodes: FolderNode[], level = 0): JSX.Element[] => {
   return nodes.map(node => (
     <div key={node.id} className="select-none">
@@ -80,6 +130,8 @@ const Sidebar: React.FC<Props> = ({ onFolderClick }) => {
         `}
         style={{ paddingLeft: `${12 + level * 16}px` }}
         onClick={() => handleClickNode(node)}
+        onMouseEnter={e => handleMouseEnter(e, node.name)}
+        onMouseLeave={handleMouseLeave}
       >
         {/* Кнопка раскрытия */}
         {node.children.length > 0 ? (
@@ -107,8 +159,8 @@ const Sidebar: React.FC<Props> = ({ onFolderClick }) => {
           <Folder size={16} className="text-[#4B67F5] mr-2 flex-shrink-0" />
         )}
 
-        {/* Название */}
-        <span className="text-sm text-[#3A3A3C] truncate">{node.name}</span>
+        {/* Название с тултипом */}
+        <span className="truncate block text-sm">{node.name}</span>
       </div>
 
       {/* Рекурсивный рендер */}
@@ -162,6 +214,8 @@ const Sidebar: React.FC<Props> = ({ onFolderClick }) => {
           )}
         </div>
       </div>
+      {/* Портальный тултип */}
+      <Tooltip text={tooltipText} target={tooltipTarget} />
     </aside>
   );
 };

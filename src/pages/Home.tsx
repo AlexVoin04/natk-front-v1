@@ -25,7 +25,7 @@ const Home: React.FC = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-
+  const [breadcrumbItems, setBreadcrumbItems] = useState<{ name: string; id: string | null }[]>([]);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null); // null = root ("Все файлы")
   const [currentPath, setCurrentPath] = useState<string>('Все файлы');
   const [loading, setLoading] = useState(false);
@@ -49,6 +49,25 @@ const Home: React.FC = () => {
         }));
 
         setFiles(mapped);
+
+        const parts = (resp.path || 'Все файлы').split('/').filter(Boolean);
+        const crumbs = parts.map((name, idx) => {
+          let id: string | null = null;
+
+          if (idx === parts.length - 1) {
+            // Последняя — текущая папка
+            id = currentFolderId;
+          } else {
+            // ищем id среди текущего уровня файлов
+            const parentFiles = idx === 0 ? mapped : [];
+            const match = parentFiles.find(f => f.name === name && f.type === 'folder');
+            if (match) id = match.id;
+          }
+
+          return { name, id };
+        });
+
+        setBreadcrumbItems(crumbs);
       } catch (e) {
         console.error("Failed to load folder items", e);
         toast.error("Failed to load folder contents");
@@ -59,11 +78,6 @@ const Home: React.FC = () => {
 
     load();
   }, [currentFolderId]);
-
-  const breadcrumbItems = currentPath.split('/').map((name, idx, arr) => {
-    // вычитслять путь надо
-    return { name, path: '/' }; // путь сейчас не используется
-  });
 
   const handleItemDoubleClick = (item: FileItem) => {
     if (item.type === 'folder') {
@@ -114,7 +128,10 @@ const Home: React.FC = () => {
         <Sidebar onFolderClick={handleFolderClick} />
         
         <main className="flex-1 p-6 flex flex-col overflow-hidden">
-          <Breadcrumbs items={breadcrumbItems} />
+          <Breadcrumbs
+            items={breadcrumbItems}
+            onClick={(id) => setCurrentFolderId(id)}
+          />
           
           <ActionBar
             onUploadFile={() => setIsUploadOpen(true)}
