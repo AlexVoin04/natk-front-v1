@@ -109,8 +109,19 @@ export async function uploadFileRequest(
 
   try {
     const resp = await api.post("/storage/files", formData, config);
-    return resp.data;
+    const data = await resp.data;
+    if (data.error) {
+      const err = new Error(data.error);
+      (err as any).suggestedName = data.suggestedName;
+      throw err;
+    }
+    return data;
   } catch (e: any) {
-    throw e.response?.data?.message || e.message || "Upload failed";
+    if (e.response?.data) {
+      const err = new Error(e.response.data.error || "Upload failed");
+      (err as any).suggestedName = e.response.data.suggestedName;
+      throw err;
+    }
+    throw e;
   }
 }

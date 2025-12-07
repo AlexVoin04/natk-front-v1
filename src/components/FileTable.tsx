@@ -129,7 +129,7 @@ interface FileTableProps {
 
   if (viewMode === 'grid') {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-gray-200 p-6 overflow-auto max-h-full">
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
           {items.map((item) => (
             <div
@@ -227,7 +227,7 @@ interface FileTableProps {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div className="bg-white rounded-xl border border-gray-200 overflow-auto max-h-full">
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-[#EDEDED] border-b border-gray-200">

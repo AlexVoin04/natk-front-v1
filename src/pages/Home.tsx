@@ -139,7 +139,7 @@ const Home: React.FC = () => {
             onViewModeChange={setViewMode}
           />
 
-          <div className="flex-1 overflow-y-auto mt-4">
+          <div className="flex flex-col flex-1 mt-4 overflow-hidden">
             {loading ? (
               <div className="p-6">
                 <p className="text-gray-500">Loading...</p>
@@ -168,6 +168,7 @@ const Home: React.FC = () => {
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
         onUpload={handleUploadFiles}
+        folderId={currentFolderId}
       />
     </div>
   );

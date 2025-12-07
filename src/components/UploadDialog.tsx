@@ -8,6 +8,14 @@ interface UploadDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onUpload: (files: File[]) => void;
+  folderId: string | null;
+}
+
+interface UploadResult {
+  id: string,
+  file: File;
+  status: 'success' | 'error';
+  errorMessage?: string;
 }
 
 interface UploadFile {
@@ -19,11 +27,13 @@ interface UploadFile {
 const UploadDialog: React.FC<UploadDialogProps> = ({
   isOpen,
   onClose,
-  onUpload
+  onUpload,
+  folderId
 }) => {
   const [uploadFiles, setUploadFiles] = useState<UploadFile[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadResults, setUploadResults] = useState<UploadResult[] | null>(null);
 
   const handleFileSelect = (files: FileList | null) => {
     if (!files) return;
@@ -64,11 +74,12 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
       prev.map(f => ({ ...f, status: 'uploading', progress: 0 }))
     );
 
+    const uploadResults: UploadResult[] = [];
     const uploadPromises = filesToUpload.map((uf, index) =>
       uploadFileRequest(
           uf.file,
           uf.file.name,
-          null, // folderId можно прокинуть как пропс
+          folderId,
           (percent) => {
             setUploadFiles(prev => 
               prev.map((f, i) => i === index ? { ...f, progress: percent } : f)
@@ -78,30 +89,27 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
           setUploadFiles(prev => 
             prev.map((f, i) => i === index ? { ...f, status: 'completed', progress: 100 } : f)
           );
+          uploadResults.push({ id: crypto.randomUUID(), file: uf.file, status: 'success' });
         }).catch((err) => {
-          setUploadFiles(prev => 
-            prev.map((f, i) => i === index ? { ...f, status: 'error' } : f)
-          );
+            const msg = err?.message || "Upload failed";
+            setUploadFiles(prev => 
+              prev.map((f, i) => i === index ? { ...f, status: 'error' } : f)
+            );
+            uploadResults.push({ id: crypto.randomUUID(), file: uf.file, status: 'error', errorMessage: msg });
+            return Promise.reject(err);
         })
     );
 
-    const results = await Promise.allSettled(uploadPromises);
+    await Promise.allSettled(uploadPromises);
 
-    const successCount = results.filter(r => r.status === "fulfilled").length;
-    const failCount = results.filter(r => r.status === "rejected").length;
-
-    if (successCount > 0) toast.success(`${successCount} file(s) uploaded successfully`);
-    if (failCount > 0) toast.error(`${failCount} file(s) failed to upload`);
-
-    // Очищаем завершенные файлы
-    setUploadFiles(prev => prev.filter(f => f.status === 'uploading' || f.status === 'pending'));
+    setUploadResults(uploadResults);
 
     // Обновляем список файлов в Home
-    const uploadedSuccessfully = filesToUpload
-      .filter((_, index) => results[index].status === "fulfilled")
-      .map(f => f.file);
-
+    const uploadedSuccessfully = uploadResults.filter(r => r.status === 'success').map(r => r.file);
     onUpload(uploadedSuccessfully);
+
+    // Очищаем текущий список файлов в диалоге
+    setUploadFiles([]);
     onClose();
   };
 
@@ -183,7 +191,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                 <h3 className="font-medium text-[#3A3A3C] mb-2">Files to upload:</h3>
                 <div className="space-y-2">
                   {uploadFiles.map((uploadFile, index) => (
-                    <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl">
+                    <div key={`${uploadFile.file.name}-${uploadFile.file.size}`} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl">
                       {getFileIcon(uploadFile.file)}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-[#3A3A3C] truncate">
@@ -234,6 +242,38 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
             </div>
           </motion.div>
         </div>
+      )}
+
+      {/* --- Панель результатов загрузки в правом нижнем углу --- */}
+      {uploadResults && (
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 50 }}
+          className="fixed bottom-6 right-6 w-80 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden z-50"
+        >
+          <div className="flex justify-between items-center px-4 py-2 bg-gray-100 border-b border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-700">Upload Results</h3>
+            <button
+              onClick={() => setUploadResults(null)}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <X size={16} />
+            </button>
+          </div>
+          <ul className="max-h-64 overflow-y-auto divide-y divide-gray-200">
+            {uploadResults.map((r) => (
+              <li key={r.id} className="flex justify-between items-center px-4 py-2">
+                <span className="text-sm text-gray-800 truncate">{r.file.name}</span>
+                {r.status === 'success' ? (
+                  <span className="text-green-500 text-sm font-medium">Uploaded</span>
+                ) : (
+                  <span className="text-red-500 text-sm">{r.errorMessage}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </motion.div>
       )}
     </AnimatePresence>
   );
