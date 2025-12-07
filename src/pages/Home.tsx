@@ -8,7 +8,7 @@ import CreateFolderDialog from '../components/CreateFolderDialog';
 import UploadDialog from '../components/UploadDialog';
 import Footer from '../components/Footer';
 import { toast } from 'react-toastify';
-import { fetchFolderItems, downloadFile, uploadFileRequest } from '../services/storage';
+import { fetchFolderItems, downloadFile, createFolder } from '../services/storage';
 
 interface FileItem {
   id: string;
@@ -89,17 +89,40 @@ const Home: React.FC = () => {
     }
   };
 
-  const handleCreateFolder = (name: string) => {
-    const newFolder: FileItem = {
-      id: Date.now().toString(),
-      name,
-      type: 'folder',
-      createdAt: new Date().toDateString(),
-      updatedAt: new Date().toDateString()
-    };
-    
-    setFiles(prev => [newFolder, ...prev]);
-    toast.success(`Folder "${name}" created successfully`);
+  const handleCreateFolder = async (name: string) => {
+    try {
+      const newFolder = await createFolder(currentFolderId, name);
+
+      toast.success(`Папка "${name}" создана`);
+
+      // Обновляем контент текущей директории
+      const resp = await fetchFolderItems(currentFolderId);
+      setFiles(mapItems(resp.items));
+      // Обновляем путь
+      setCurrentPath(resp.path || 'Все файлы');
+
+      // Обновляем хлебные крошки
+      const parts = (resp.path || 'Все файлы').split('/').filter(Boolean);
+      setBreadcrumbItems(
+        parts.map((name, idx) => ({
+          name,
+          id: idx === parts.length - 1 ? currentFolderId : null
+        }))
+      );
+
+      setIsCreateFolderOpen(false);
+
+    } catch (e: any) {
+      if (e.message) {
+        toast.error(e.message);
+          return {
+          error: e.message,
+          suggestedName: (e as any).suggestedName
+        };
+      }
+
+      toast.error("Ошибка при создании папки");
+    }
   };
 
   const handleUploadFiles = async (uploadedFiles: File[]) => {
@@ -124,7 +147,10 @@ const Home: React.FC = () => {
       <Header />
       
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar onFolderClick={handleFolderClick} />
+        <Sidebar 
+          onFolderClick={handleFolderClick} 
+          refreshTrigger={files.length}
+        />
         
         <main className="flex-1 p-6 flex flex-col overflow-hidden">
           <Breadcrumbs

@@ -16,7 +16,7 @@ const CreateFolderDialog: React.FC<CreateFolderDialogProps> = ({
   const [folderName, setFolderName] = useState('');
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!folderName.trim()) {
@@ -29,7 +29,18 @@ const CreateFolderDialog: React.FC<CreateFolderDialogProps> = ({
       return;
     }
 
-    onConfirm(folderName.trim());
+    const result = await onConfirm(folderName.trim());
+
+    if (result?.error) {
+      setError(result.error);
+
+      if (result.suggestedName) {
+        setFolderName(result.suggestedName);
+      }
+
+      return;
+    }
+
     setFolderName('');
     setError('');
     onClose();

@@ -34,6 +34,26 @@ export async function fetchFolderItems(folderId?: string | null): Promise<Folder
   return resp.data;
 }
 
+export async function createFolder(parentFolderId: string | null, name: string) {
+  try {
+    const resp = await api.post("/storage/folders", {
+      parentFolderId,
+      name
+    });
+
+    return resp.data;
+  } catch (e: any) {
+    // сервер вернул JSON с ошибкой
+    if (e.response?.data?.error) {
+      const err = new Error(e.response.data.error);
+      (err as any).suggestedName = e.response.data.suggestedName;
+      throw err;
+    }
+
+    throw new Error("Unknown error while creating folder");
+  }
+}
+
 export async function downloadFile(fileId: string): Promise<void> {
   const resp = await api.get(`/storage/files/${fileId}/download`, {
     responseType: "blob", 

@@ -11,6 +11,7 @@ interface FolderNode extends FolderTreeDto {
 
 type Props = {
   onFolderClick?: (folderId: string | null) => void;
+  refreshTrigger?: any;
 };
 
 // Портальный тултип
@@ -51,7 +52,7 @@ const Tooltip: React.FC<{ text: string; target: HTMLElement | null }> = ({ text,
   );
 };
 
-const Sidebar: React.FC<Props> = ({ onFolderClick }) => {
+const Sidebar: React.FC<Props> = ({ onFolderClick, refreshTrigger }) => {
   const [folders, setFolders] = useState<FolderNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
@@ -64,11 +65,17 @@ const Sidebar: React.FC<Props> = ({ onFolderClick }) => {
       try {
         const data = await fetchFolderTree();
 
+        const savedExpanded: string[] =
+        JSON.parse(localStorage.getItem("sidebar_expanded") || "[]")
+
+        const savedSelected =
+        localStorage.getItem("sidebar_selected") || null;
+
         // Добавляем флаг isExpanded каждому узлу
         const addFlags = (nodes: FolderTreeDto[]): FolderNode[] =>
           nodes.map(n => ({
             ...n,
-            isExpanded: false,
+            isExpanded: savedExpanded.includes(n.id),
             children: n.children ? addFlags(n.children) : []
           }));
 
@@ -80,6 +87,7 @@ const Sidebar: React.FC<Props> = ({ onFolderClick }) => {
           children: addFlags(data)
         };
 
+        setSelectedFolder(savedSelected);
         setFolders([root]);
       } catch (e) {
         console.error("Failed to load folder tree", e);
@@ -89,15 +97,30 @@ const Sidebar: React.FC<Props> = ({ onFolderClick }) => {
     };
 
     loadFolders();
-  }, []);
+  }, [refreshTrigger]);
 
   const toggleFolder = (folderId: string) => {
+    const collectExpanded = (nodes: FolderNode[], acc: string[]) => {
+      nodes.forEach(n => {
+        if (n.isExpanded) acc.push(n.id);
+        if (n.children) collectExpanded(n.children, acc);
+      });
+    };
+
     const update = (nodes: FolderNode[]): FolderNode[] =>
       nodes.map(n => ({
         ...n,
         isExpanded: n.id === folderId ? !n.isExpanded : n.isExpanded,
         children: n.children ? update(n.children) : []
-      }));
+    }));
+
+    const updated = update(folders);
+
+    // Сохраняем открытые
+    const expandedList: string[] = [];
+    collectExpanded(updated, expandedList);
+
+    localStorage.setItem("sidebar_expanded", JSON.stringify(expandedList));
 
     setFolders(update(folders));
   };
@@ -106,6 +129,7 @@ const Sidebar: React.FC<Props> = ({ onFolderClick }) => {
     // "all" -> null, иначе id
     const id = node.id === 'all' ? null : node.id;
     setSelectedFolder(id);
+    localStorage.setItem("sidebar_selected", id || "");
     onFolderClick?.(id);
   };
 
