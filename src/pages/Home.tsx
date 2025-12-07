@@ -40,6 +40,8 @@ const Home: React.FC = () => {
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null); // null = root ("Все файлы")
   const [currentPath, setCurrentPath] = useState<string>('Все файлы');
   const [loading, setLoading] = useState(false);
+  const [sortField, setSortField] = useState<'name' | 'createdAt'>('name');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // При смене папки — загружаем её содержимое
   useEffect(() => {
@@ -142,6 +144,32 @@ const Home: React.FC = () => {
     setCurrentFolderId(folderId);
   };
 
+  const sortItems = (items: FileItem[]) => {
+    return [...items].sort((a, b) => {
+      // 1. Сначала сортировка по типу — папки выше
+      if (a.type !== b.type) {
+        return a.type === 'folder' ? -1 : 1;
+      }
+
+      // 2. Сортировка по имени
+      if (sortField === 'name') {
+        const cmp = a.name.localeCompare(b.name);
+        return sortDirection === 'asc' ? cmp : -cmp;
+      }
+
+      // 3. Сортировка по creation date
+      if (sortField === 'createdAt') {
+        const da = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const db = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        const cmp = da - db;
+
+        return sortDirection === 'asc' ? cmp : -cmp;
+      }
+
+      return 0;
+    });
+  };
+
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       <Header />
@@ -163,6 +191,13 @@ const Home: React.FC = () => {
             onCreateFolder={() => setIsCreateFolderOpen(true)}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
+
+            sortField={sortField}
+            sortDirection={sortDirection}
+            onSortChange={(field, dir) => {
+              setSortField(field);
+              setSortDirection(dir);
+            }}
           />
 
           <div className="flex flex-col flex-1 mt-4 overflow-hidden">
@@ -172,10 +207,16 @@ const Home: React.FC = () => {
               </div>
             ) : (
               <FileTable
-                items={files}
+                items={sortItems(files)}
                 viewMode={viewMode}
                 onItemDoubleClick={handleItemDoubleClick}
                 onDownloadFile={(id) => downloadFile(id)}
+                onSortChange={(field, dir) => {
+                  setSortField(field);
+                  setSortDirection(dir);
+                }}
+                sortField={sortField}
+                sortDirection={sortDirection}
               />
             )}
           </div>

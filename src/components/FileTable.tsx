@@ -27,6 +27,7 @@ const fileTypeMap: Record<string, JSX.Element> = {
   ppt: <FileText size={48} className="text-orange-500" />,      
   xls: <FileSpreadsheet size={48} className="text-green-700" />, 
   archive: <FileArchive size={48} className="text-gray-700" />, 
+  txt: <FileText size={48} className="text-gray-500" />,
 };
 
 interface FileItem {
@@ -44,6 +45,9 @@ interface FileTableProps {
   viewMode: 'grid' | 'list';
   onItemDoubleClick: (item: FileItem) => void;
   onDownloadFile: (id: string) => void;
+  onSortChange: (field: 'name' | 'createdAt', dir: 'asc' | 'desc') => void;
+  sortField: 'name' | 'createdAt';
+  sortDirection: 'asc' | 'desc';
 }
 
   const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onItemDoubleClick, onDownloadFile }) => {
@@ -59,6 +63,7 @@ interface FileTableProps {
     if (fileType.includes('image')) return fileTypeMap.image;
     if (fileType.includes('video')) return fileTypeMap.video;
     if (fileType.includes('audio')) return fileTypeMap.audio;
+    if (fileType.includes('text')) return fileTypeMap.txt;
     if (fileType.includes('text')|| fileType.includes('.document')) return fileTypeMap.text;
     if (fileType.includes('pdf')) return fileTypeMap.pdf;
     if (fileType.includes('ppt') || fileType.includes('presentation')) return fileTypeMap.ppt;
