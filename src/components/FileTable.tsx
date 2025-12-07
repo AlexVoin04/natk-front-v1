@@ -56,7 +56,7 @@ interface FileTableProps {
     const [showTooltipFor, setShowTooltipFor] = useState<string | null>(null);
 
     const getFileIcon = (item: FileItem) => {
-      if (item.type === 'folder') return <Folder size={48} className="text-[#4B67F5]" />;
+      if (item.type === 'folder') return <Folder size={48} className="text-[#eab308]" />;
 
     const fileType = item.fileType?.toLowerCase() || '';
     
