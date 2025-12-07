@@ -49,7 +49,8 @@ const Home: React.FC = () => {
         const resp = await fetchFolderItems(currentFolderId);
         setCurrentPath(resp.path || 'Все файлы');
 
-        setFiles(mapItems(resp.items));
+        const mapped = mapItems(resp.items);
+        setFiles(mapped);
 
         const parts = (resp.path || 'Все файлы').split('/').filter(Boolean);
         const crumbs = parts.map((name, idx) => {
@@ -101,46 +102,17 @@ const Home: React.FC = () => {
     toast.success(`Folder "${name}" created successfully`);
   };
 
-const handleUploadFiles = async (uploadedFiles: File[]) => {
-  try {
-    const results = await Promise.allSettled(
-      uploadedFiles.map(file => 
-        uploadFileRequest(file, file.name, currentFolderId)
-      )
-    );
+  const handleUploadFiles = async (uploadedFiles: File[]) => {
+    if (uploadedFiles.length === 0) return;
 
-    const ok = results.filter(r => r.status === "fulfilled").length;
-    const fail = results.filter(r => r.status === "rejected").length;
-
-    // --- Успешные загрузки ---
-    if (ok > 0) {
-      toast.success(`${ok} file(s) uploaded successfully`);
-    }
-
-    // --- Ошибки по файлам ---
-    if (fail > 0) {
-      toast.error(`${fail} file(s) failed to upload`);
-
-      // Выводим ошибки конкретных файлов
-      results.forEach((r, index) => {
-        if (r.status === "rejected") {
-          const file = uploadedFiles[index];
-          toast.error(`Failed: ${file.name}`);
-        }
-      });
-    }
-
-    // обновление файлов, если хоть что-то загрузилось
-    if (ok > 0) {
+    try {
       const resp = await fetchFolderItems(currentFolderId);
       setFiles(mapItems(resp.items));
+    } catch (e) {
+      toast.error("Unexpected error while uploading");
+      console.error(e);
     }
-
-  } catch (e) {
-    console.error(e);
-    toast.error("Unexpected error while uploading");
-  }
-};
+  };
 
     // прокидываем в сайдбар — при клике на папку будет устанавливаться currentFolderId
   const handleFolderClick = (folderId: string | null) => {

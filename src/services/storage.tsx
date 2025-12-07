@@ -1,6 +1,7 @@
 import api from "./api";
 import type { FolderTreeDto } from "./interfaces";
 import { toast } from "react-toastify";
+import type { AxiosRequestConfig } from 'axios';
 
 export async function fetchFolderTree(): Promise<FolderTreeDto[]> {
   const resp = await api.get<FolderTreeDto[]>("/storage/folders/tree");
@@ -86,16 +87,30 @@ if (disposition) {
 export async function uploadFileRequest(
   file: File,
   name: string,
-  folderId: string | null
+  folderId: string | null,
+  onProgress?: (percent: number) => void
 ) {
   const formData = new FormData();
   formData.append("name", name);
   if (folderId) formData.append("folderId", folderId);
   formData.append("fileData", file);
 
-  const resp = await api.post("/storage/files", formData, {
+  const config: AxiosRequestConfig = {
     headers: { "Content-Type": "multipart/form-data" },
-  });
+    onUploadProgress: (progressEvent) => {
+      if (progressEvent.total && onProgress) {
+        const percentCompleted = Math.round(
+          (progressEvent.loaded * 100) / progressEvent.total
+        );
+        onProgress(percentCompleted);
+      }
+    },
+  };
 
-  return resp.data;
+  try {
+    const resp = await api.post("/storage/files", formData, config);
+    return resp.data;
+  } catch (e: any) {
+    throw e.response?.data?.message || e.message || "Upload failed";
+  }
 }

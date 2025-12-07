@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { X, Upload, File, Image, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { uploadFileRequest } from '../services/storage';
+import { toast } from 'react-toastify';
 
 interface UploadDialogProps {
   isOpen: boolean;
@@ -55,36 +57,52 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
     setUploadFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const startUpload = () => {
-    const files = uploadFiles.map(uf => uf.file);
-    onUpload(files);
-    
-    // Simulate upload progress
-    uploadFiles.forEach((_, index) => {
-      setUploadFiles(prev => 
-        prev.map((uf, i) => 
-          i === index ? { ...uf, status: 'uploading' } : uf
-        )
-      );
+  const startUpload = async () => {
+    const filesToUpload = [...uploadFiles];
 
-      const interval = setInterval(() => {
-        setUploadFiles(prev => 
-          prev.map((uf, i) => {
-            if (i === index) {
-              const newProgress = Math.min(uf.progress + 10, 100);
-              return {
-                ...uf,
-                progress: newProgress,
-                status: newProgress === 100 ? 'completed' : 'uploading'
-              };
-            }
-            return uf;
-          })
-        );
-      }, 200);
+    setUploadFiles(prev => 
+      prev.map(f => ({ ...f, status: 'uploading', progress: 0 }))
+    );
 
-      setTimeout(() => clearInterval(interval), 2000);
-    });
+    const uploadPromises = filesToUpload.map((uf, index) =>
+      uploadFileRequest(
+          uf.file,
+          uf.file.name,
+          null, // folderId можно прокинуть как пропс
+          (percent) => {
+            setUploadFiles(prev => 
+              prev.map((f, i) => i === index ? { ...f, progress: percent } : f)
+            );
+          }
+        ).then(() => {
+          setUploadFiles(prev => 
+            prev.map((f, i) => i === index ? { ...f, status: 'completed', progress: 100 } : f)
+          );
+        }).catch((err) => {
+          setUploadFiles(prev => 
+            prev.map((f, i) => i === index ? { ...f, status: 'error' } : f)
+          );
+        })
+    );
+
+    const results = await Promise.allSettled(uploadPromises);
+
+    const successCount = results.filter(r => r.status === "fulfilled").length;
+    const failCount = results.filter(r => r.status === "rejected").length;
+
+    if (successCount > 0) toast.success(`${successCount} file(s) uploaded successfully`);
+    if (failCount > 0) toast.error(`${failCount} file(s) failed to upload`);
+
+    // Очищаем завершенные файлы
+    setUploadFiles(prev => prev.filter(f => f.status === 'uploading' || f.status === 'pending'));
+
+    // Обновляем список файлов в Home
+    const uploadedSuccessfully = filesToUpload
+      .filter((_, index) => results[index].status === "fulfilled")
+      .map(f => f.file);
+
+    onUpload(uploadedSuccessfully);
+    onClose();
   };
 
   const handleClose = () => {
