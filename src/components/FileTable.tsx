@@ -17,6 +17,7 @@ import {
   Info
 } from 'lucide-react';
 import { format } from 'date-fns';
+import ContextMenu from "./ContextMenu";
 
 const fileTypeMap: Record<string, JSX.Element> = {
   image: <Image size={48} className="text-green-500" />,
@@ -172,50 +173,14 @@ interface FileTableProps {
           ))}
         </div>
 
-        {contextMenu && (
-          <div
-            className="fixed bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50 min-w-48"
-            style={getContextMenuPosition()}
-            onMouseLeave={() => setContextMenu(null)}
-          >
-            <button className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-sm text-[#3A3A3C]"
-              onClick={() => {
-                onDownloadFile(contextMenu.itemId);
-                setContextMenu(null);
-              }}
-            >
-              <Download size={16} />
-              <span>Download</span>
-            </button>
-            <button className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-sm text-[#3A3A3C]">
-              <Edit size={16} />
-              <span>Rename</span>
-            </button>
-            <button className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-sm text-[#3A3A3C]">
-              <Copy size={16} />
-              <span>Copy</span>
-            </button>
-            <button className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-sm text-[#3A3A3C]">
-              <Move size={16} />
-              <span>Move</span>
-            </button>
-            <button
-              className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-sm text-[#3A3A3C]"
-              onClick={() => {
-                if (onOpenProperties) onOpenProperties(contextMenu.itemId);
-                setContextMenu(null);
-              }}
-            >
-              <Info size={16} />
-              <span>Properties</span>
-            </button>
-            <hr className="my-2 border-gray-200" />
-            <button className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-sm text-red-500">
-              <Trash2 size={16} />
-              <span>Delete</span>
-            </button>
-          </div>
-        )}
+        <ContextMenu
+          x={contextMenu?.x ?? 0}
+          y={contextMenu?.y ?? 0}
+          item={items.find(i => i.id === contextMenu?.itemId) || null}
+          onDownload={onDownloadFile}
+          onProperties={onOpenProperties || (() => {})}
+          onClose={() => setContextMenu(null)}
+        />
       </div>
     );
   }
@@ -293,50 +258,14 @@ interface FileTableProps {
         </table>
       </div>
 
-      {contextMenu && (
-        <div
-          className="fixed bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50 min-w-48"
-          style={getContextMenuPosition()}
-          onMouseLeave={() => setContextMenu(null)}
-        >
-          <button className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-sm text-[#3A3A3C]"
-            onClick={() => {
-              onDownloadFile(contextMenu.itemId);
-              setContextMenu(null);
-            }}
-          >
-            <Download size={16} />
-            <span>Download</span>
-          </button>
-          <button className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-sm text-[#3A3A3C]">
-            <Edit size={16} />
-            <span>Rename</span>
-          </button>
-          <button className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-sm text-[#3A3A3C]">
-            <Copy size={16} />
-            <span>Copy</span>
-          </button>
-          <button className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-sm text-[#3A3A3C]">
-            <Move size={16} />
-            <span>Move</span>
-          </button>
-          <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-sm text-[#3A3A3C]"
-            onClick={() => {
-              if (onOpenProperties) onOpenProperties(contextMenu.itemId);
-              setContextMenu(null);
-            }}
-          >
-            <Info size={16} />
-            <span>Properties</span>
-          </button>
-          <hr className="my-2 border-gray-200" />
-          <button className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-sm text-red-500">
-            <Trash2 size={16} />
-            <span>Delete</span>
-          </button>
-        </div>
-      )}
+      <ContextMenu
+        x={contextMenu?.x ?? 0}
+        y={contextMenu?.y ?? 0}
+        item={items.find(i => i.id === contextMenu?.itemId) || null}
+        onDownload={onDownloadFile}
+        onProperties={onOpenProperties || (() => {})}
+        onClose={() => setContextMenu(null)}
+      />
     </div>
   );
 };
