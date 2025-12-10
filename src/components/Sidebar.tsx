@@ -178,9 +178,9 @@ const Sidebar: React.FC<Props> = ({ onFolderClick, refreshTrigger }) => {
 
         {/* Иконка папки */}
         {node.isExpanded ? (
-          <FolderOpen size={16} className="text-[#eab308] mr-2 flex-shrink-0" />
+          <FolderOpen size={24} className="text-[#eab308] mr-2 flex-shrink-0" />
         ) : (
-          <Folder size={16} className="text-[#eab308] mr-2 flex-shrink-0" />
+          <Folder size={24} className="text-[#eab308] mr-2 flex-shrink-0" />
         )}
 
         {/* Название с тултипом */}

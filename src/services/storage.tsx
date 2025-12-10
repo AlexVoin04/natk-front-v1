@@ -145,3 +145,8 @@ export async function uploadFileRequest(
     throw e;
   }
 }
+
+export async function fetchFileInfo(fileId: string) {
+  const resp = await api.get(`/storage/files/${fileId}`);
+  return resp.data;
+}

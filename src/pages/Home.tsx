@@ -6,9 +6,11 @@ import ActionBar from '../components/ActionBar';
 import FileTable from '../components/FileTable';
 import CreateFolderDialog from '../components/CreateFolderDialog';
 import UploadDialog from '../components/UploadDialog';
+import FilePropertiesDialog from '../components/FilePropertiesDialog';
 import Footer from '../components/Footer';
 import { toast } from 'react-toastify';
-import { fetchFolderItems, downloadFile, createFolder } from '../services/storage';
+import { fetchFolderItems, downloadFile, createFolder, fetchFileInfo } from '../services/storage';
+import { resolveFileIcon } from "../components/FileTable";
 
 interface FileItem {
   id: string;
@@ -42,6 +44,8 @@ const Home: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [sortField, setSortField] = useState<'name' | 'createdAt'>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [isPropertiesOpen, setIsPropertiesOpen] = useState(false);
+  const [selectedFileInfo, setSelectedFileInfo] = useState<any | null>(null);
 
   // При смене папки — загружаем её содержимое
   useEffect(() => {
@@ -90,6 +94,29 @@ const Home: React.FC = () => {
       toast.info(`Opening file: ${item.name}`);
     }
   };
+
+  const handleOpenProperties = async (fileId: string) => {
+    try {
+      const item = files.find(f => f.id === fileId);
+
+      if (!item) return;
+
+      if (item.type === "folder") {
+        // просто выходим, ничего не делаем
+        return;
+      }
+
+
+      fetchFileInfo(fileId)
+        .then(info => {
+          setSelectedFileInfo({...info, icon: item ? resolveFileIcon(item) : null});
+          setIsPropertiesOpen(true);
+        });
+    } catch (e) {
+      toast.error("Не удалось получить свойства файла");
+    }
+  };
+
 
   const handleCreateFolder = async (name: string) => {
     try {
@@ -211,6 +238,7 @@ const Home: React.FC = () => {
                 viewMode={viewMode}
                 onItemDoubleClick={handleItemDoubleClick}
                 onDownloadFile={(id) => downloadFile(id)}
+                onOpenProperties={handleOpenProperties}
                 onSortChange={(field, dir) => {
                   setSortField(field);
                   setSortDirection(dir);
@@ -236,6 +264,12 @@ const Home: React.FC = () => {
         onClose={() => setIsUploadOpen(false)}
         onUpload={handleUploadFiles}
         folderId={currentFolderId}
+      />
+
+      <FilePropertiesDialog
+        isOpen={isPropertiesOpen}
+        onClose={() => setIsPropertiesOpen(false)}
+        file={selectedFileInfo}
       />
     </div>
   );

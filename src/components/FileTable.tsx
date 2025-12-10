@@ -45,33 +45,16 @@ interface FileTableProps {
   viewMode: 'grid' | 'list';
   onItemDoubleClick: (item: FileItem) => void;
   onDownloadFile: (id: string) => void;
+  onOpenProperties?: (id: string) => void;
   onSortChange: (field: 'name' | 'createdAt', dir: 'asc' | 'desc') => void;
   sortField: 'name' | 'createdAt';
   sortDirection: 'asc' | 'desc';
 }
 
-  const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onItemDoubleClick, onDownloadFile }) => {
+  const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onItemDoubleClick, onDownloadFile, onOpenProperties }) => {
     const [selectedItems, setSelectedItems] = useState<string[]>([]);
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; itemId: string } | null>(null);
     const [showTooltipFor, setShowTooltipFor] = useState<string | null>(null);
-
-    const getFileIcon = (item: FileItem) => {
-      if (item.type === 'folder') return <Folder size={48} className="text-[#eab308]" />;
-
-    const fileType = item.fileType?.toLowerCase() || '';
-    
-    if (fileType.includes('image')) return fileTypeMap.image;
-    if (fileType.includes('video')) return fileTypeMap.video;
-    if (fileType.includes('audio')) return fileTypeMap.audio;
-    if (fileType.includes('text')) return fileTypeMap.txt;
-    if (fileType.includes('text')|| fileType.includes('.document')) return fileTypeMap.text;
-    if (fileType.includes('pdf')) return fileTypeMap.pdf;
-    if (fileType.includes('ppt') || fileType.includes('presentation')) return fileTypeMap.ppt;
-    if (fileType.includes('xls') || fileType.includes('spreadsheet')) return fileTypeMap.xls;
-    if (fileType.includes('zip') || fileType.includes('rar') || fileType.includes('7z') || fileType.includes('archive')) return fileTypeMap.archive;
-
-    return <File size={48} className="text-gray-500" />; 
-  };
 
   const formatFileSize = (bytes?: number) => {
     if (!bytes) return '-';
@@ -150,7 +133,7 @@ interface FileTableProps {
             >
               <div className="flex flex-col items-center text-center">
                 <div className="mb-3">
-                  {getFileIcon(item)}
+                  {resolveFileIcon(item)}
                 </div>
                 <span className="text-sm text-[#3A3A3C] font-medium truncate w-full">
                   {item.name}
@@ -216,7 +199,13 @@ interface FileTableProps {
               <Move size={16} />
               <span>Move</span>
             </button>
-            <button className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-sm text-[#3A3A3C]">
+            <button
+              className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-sm text-[#3A3A3C]"
+              onClick={() => {
+                if (onOpenProperties) onOpenProperties(contextMenu.itemId);
+                setContextMenu(null);
+              }}
+            >
               <Info size={16} />
               <span>Properties</span>
             </button>
@@ -258,7 +247,7 @@ interface FileTableProps {
               >
                 <td className="py-3 px-4">
                   <div className="flex items-center space-x-3">
-                    {getFileIcon(item)}
+                    {resolveFileIcon(item)}
                     <span
                       className="text-[#3A3A3C] font-medium truncate"
                       onMouseEnter={() => setShowTooltipFor(item.id)}
@@ -331,7 +320,13 @@ interface FileTableProps {
             <Move size={16} />
             <span>Move</span>
           </button>
-          <button className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-sm text-[#3A3A3C]">
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-sm text-[#3A3A3C]"
+            onClick={() => {
+              if (onOpenProperties) onOpenProperties(contextMenu.itemId);
+              setContextMenu(null);
+            }}
+          >
             <Info size={16} />
             <span>Properties</span>
           </button>
@@ -347,3 +342,24 @@ interface FileTableProps {
 };
 
 export default FileTable;
+
+export const resolveFileIcon = (item: FileItem) => {
+  if (item.type === 'folder')
+    return <Folder size={48} className="text-[#eab308]" />;
+
+  const fileType = item.fileType?.toLowerCase() || "";
+
+  if (fileType.includes("image")) return fileTypeMap.image;
+  if (fileType.includes("video")) return fileTypeMap.video;
+  if (fileType.includes("audio")) return fileTypeMap.audio;
+  if (fileType.includes("pdf")) return fileTypeMap.pdf;
+  if (fileType.includes("ppt") || fileType.includes("presentation")) return fileTypeMap.ppt;
+  if (fileType.includes("xls") || fileType.includes("spreadsheet")) return fileTypeMap.xls;
+  if (fileType.includes("zip") || fileType.includes("rar") || fileType.includes("7z"))
+    return fileTypeMap.archive;
+  if (fileType.includes("text")) return fileTypeMap.txt;
+  if (fileType.includes(".document"))
+    return fileTypeMap.text;
+
+  return <File size={48} className="text-gray-500" />;
+};
