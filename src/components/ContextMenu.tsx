@@ -71,28 +71,33 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
           icon={<Download size={16} />}
           label="Download"
           onClick={() => !isFolder && onDownload(item.id)}
+          onClose={onClose}
         />
 
         <MenuItem
           icon={<Edit size={16} />}
           label="Rename"
+          onClose={onClose}
         />
 
         <MenuItem
           disabled={isFolder}
           icon={<Copy size={16} />}
           label="Copy"
+          onClose={onClose}
         />
 
         <MenuItem
           icon={<Move size={16} />}
           label="Move"
+          onClose={onClose}
         />
 
         <MenuItem
           disabled={isFolder}
           icon={<Info size={16} />}
           label="Properties"
+          onClose={onClose}
           onClick={() => !isFolder && onProperties(item.id)}
         />
 
@@ -106,6 +111,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
             e.stopPropagation();  // <--- предотвращаем закрытие меню
             setConfirmOpen(true);
           }}
+          onClose={onClose}
         />
       </div>
 
@@ -157,19 +163,22 @@ const MenuItem = ({
   label,
   onClick,
   disabled,
-  danger
+  danger,
+  onClose
 }: {
   icon: React.ReactNode;
   label: string;
   onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   disabled?: boolean;
   danger?: boolean;
+  onClose?: () => void;
 }) => {
   return (
     <button
       onClick={(e) => {
         e.stopPropagation();
         onClick?.(e);
+        onClose?.();
       }}
       disabled={disabled}
       className={`
