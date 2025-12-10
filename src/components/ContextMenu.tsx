@@ -12,6 +12,7 @@ interface ContextMenuProps {
   onDownload: (id: string) => void;
   onProperties: (id: string) => void;
   onClose: () => void;
+  onDelete: (item: { id: string; type: "folder" | "file" }) => void;
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({
@@ -20,7 +21,8 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   item,
   onDownload,
   onProperties,
-  onClose
+  onClose,
+  onDelete
 }) => {
   const [pos, setPos] = useState({ x, y });
 
@@ -52,20 +54,17 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
 
   return createPortal(
     <>
-      {/* прозрачный слой для клика вне меню */}
       <div
         className="fixed inset-0 z-40"
         onClick={onClose}
       />
 
-      {/* само меню */}
       <div
         className="fixed z-50 bg-white rounded-xl shadow-lg border border-gray-200 py-2 min-w-48 
                    animate-[fadeIn_0.12s_ease-out] 
                    transition-opacity duration-200"
         style={{ left: pos.x, top: pos.y }}
       >
-        {/* Кнопки */}
         <MenuItem
           disabled={isFolder}
           icon={<Download size={16} />}
@@ -102,6 +101,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
           icon={<Trash2 size={16} />}
           label="Delete"
           danger
+          onClick={() => onDelete(item)}
         />
       </div>
 

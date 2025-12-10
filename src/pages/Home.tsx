@@ -9,7 +9,7 @@ import UploadDialog from '../components/UploadDialog';
 import FilePropertiesDialog from '../components/FilePropertiesDialog';
 import Footer from '../components/Footer';
 import { toast } from 'react-toastify';
-import { fetchFolderItems, downloadFile, createFolder, fetchFileInfo } from '../services/storage';
+import { fetchFolderItems, downloadFile, createFolder, fetchFileInfo, deleteFile, deleteFolder } from '../services/storage';
 import { resolveFileIcon } from "../components/FileTable";
 
 interface FileItem {
@@ -117,6 +117,21 @@ const Home: React.FC = () => {
     }
   };
 
+  const handleDeleteItem = async (id: string, type: "file" | "folder") => {
+    try {
+      if (type === "folder") {
+        await deleteFolder(id);
+      } else {
+        await deleteFile(id);
+      }
+
+      const updated = await fetchFolderItems(currentFolderId);
+      setFiles(mapItems(updated.items));
+
+    } catch (e) {
+      toast.error("Не удалось удалить элемент");
+    }
+  }
 
   const handleCreateFolder = async (name: string) => {
     try {
@@ -239,6 +254,7 @@ const Home: React.FC = () => {
                 onItemDoubleClick={handleItemDoubleClick}
                 onDownloadFile={(id) => downloadFile(id)}
                 onOpenProperties={handleOpenProperties}
+                onDeleteItem={handleDeleteItem}
                 onSortChange={(field, dir) => {
                   setSortField(field);
                   setSortDirection(dir);

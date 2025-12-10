@@ -9,12 +9,6 @@ import {
   Music, 
   Video, 
   MoreVertical,
-  Download,
-  Edit,
-  Trash2,
-  Copy,
-  Move,
-  Info
 } from 'lucide-react';
 import { format } from 'date-fns';
 import ContextMenu from "./ContextMenu";
@@ -48,11 +42,12 @@ interface FileTableProps {
   onDownloadFile: (id: string) => void;
   onOpenProperties?: (id: string) => void;
   onSortChange: (field: 'name' | 'createdAt', dir: 'asc' | 'desc') => void;
+  onDeleteItem: (id: string, type: "file" | "folder") => void;
   sortField: 'name' | 'createdAt';
   sortDirection: 'asc' | 'desc';
 }
 
-  const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onItemDoubleClick, onDownloadFile, onOpenProperties }) => {
+  const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onItemDoubleClick, onDownloadFile, onOpenProperties, onDeleteItem }) => {
     const [selectedItems, setSelectedItems] = useState<string[]>([]);
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; itemId: string } | null>(null);
     const [showTooltipFor, setShowTooltipFor] = useState<string | null>(null);
@@ -180,6 +175,7 @@ interface FileTableProps {
           onDownload={onDownloadFile}
           onProperties={onOpenProperties || (() => {})}
           onClose={() => setContextMenu(null)}
+          onDelete={(item) => onDeleteItem(item.id, item.type)}
         />
       </div>
     );
@@ -265,6 +261,7 @@ interface FileTableProps {
         onDownload={onDownloadFile}
         onProperties={onOpenProperties || (() => {})}
         onClose={() => setContextMenu(null)}
+        onDelete={(item) => onDeleteItem(item.id, item.type)}
       />
     </div>
   );

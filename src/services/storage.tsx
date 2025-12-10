@@ -150,3 +150,21 @@ export async function fetchFileInfo(fileId: string) {
   const resp = await api.get(`/storage/files/${fileId}`);
   return resp.data;
 }
+
+export async function deleteFile(id: string) {
+  try {
+    await api.delete(`/storage/files/${id}`);
+    toast.success("Файл удалён");
+  } catch (e) {
+    toast.error("Ошибка при удалении файла");
+  }
+}
+
+export async function deleteFolder(id: string) {
+  try {
+    await api.delete(`/storage/folders/${id}`);
+    toast.success("Папка удалена");
+  } catch (e) {
+    toast.error("Ошибка при удалении папки");
+  }
+}
