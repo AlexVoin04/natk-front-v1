@@ -25,6 +25,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   onDelete
 }) => {
   const [pos, setPos] = useState({ x, y });
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // авто-позиционирование (чтобы меню не улетало за экран)
   useEffect(() => {
@@ -101,11 +102,42 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
           icon={<Trash2 size={16} />}
           label="Delete"
           danger
-          onClick={() => onDelete(item)}
+          onClick={(e) => {
+            e.stopPropagation();  // <--- предотвращаем закрытие меню
+            setConfirmOpen(true);
+          }}
         />
       </div>
 
-      {/* Анимация */}
+      {confirmOpen && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/40">
+          <div className="bg-white p-6 rounded-xl shadow-lg w-80">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Delete</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              Are you sure you want to delete ?
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setConfirmOpen(false)}
+                className="px-4 py-2 rounded-xl border border-gray-300 hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  onDelete(item);
+                  setConfirmOpen(false);
+                  onClose();
+                }}
+                className="px-4 py-2 rounded-xl bg-red-500 text-white hover:bg-red-600"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         @keyframes fadeIn {
           0% { opacity: 0; transform: scale(0.94); }
@@ -129,13 +161,16 @@ const MenuItem = ({
 }: {
   icon: React.ReactNode;
   label: string;
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   disabled?: boolean;
   danger?: boolean;
 }) => {
   return (
     <button
-      onClick={onClick}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.(e);
+      }}
       disabled={disabled}
       className={`
         w-full text-left px-4 py-2 flex items-center space-x-2 text-sm
