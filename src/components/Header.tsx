@@ -16,10 +16,12 @@ const Header: React.FC = () => {
     <header className="bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
         <Link to="/" className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-[#4B67F5] rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">US</span>
+          <div className="w-10 h-10 bg-[#4B67F5] rounded-lg flex items-center justify-center">
+            <div className="text-white font-bold text-sm">
+              <img src='/logo.svg'></img>
+            </div>
           </div>
-          <h1 className="text-xl font-semibold text-[#3A3A3C]">User Storage</h1>
+          <h1 className="text-xl font-semibold text-[#3A3A3C]">Stratus</h1>
         </Link>
         
         {/* <nav className="hidden md:flex items-center space-x-8">
