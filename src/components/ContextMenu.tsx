@@ -114,11 +114,11 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
           icon={<Trash2 size={16} />}
           label="Delete"
           danger
+          closeOnClick={false}
           onClick={(e) => {
-            e.stopPropagation();  // <--- предотвращаем закрытие меню
+            e.stopPropagation();
             setConfirmOpen(true);
           }}
-          onClose={onClose}
         />
       </div>
 
@@ -171,7 +171,8 @@ const MenuItem = ({
   onClick,
   disabled,
   danger,
-  onClose
+  onClose,
+  closeOnClick = true
 }: {
   icon: React.ReactNode;
   label: string;
@@ -179,13 +180,16 @@ const MenuItem = ({
   disabled?: boolean;
   danger?: boolean;
   onClose?: () => void;
+  closeOnClick?: boolean;
 }) => {
   return (
     <button
       onClick={(e) => {
         e.stopPropagation();
         onClick?.(e);
-        onClose?.();
+        if (closeOnClick) {
+          onClose?.();
+        }
       }}
       disabled={disabled}
       className={`
