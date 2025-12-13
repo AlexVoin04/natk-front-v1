@@ -168,3 +168,31 @@ export async function deleteFolder(id: string) {
     toast.error("Ошибка при удалении папки");
   }
 }
+
+export async function renameFile(id: string, newName: string) {
+  try {
+    const resp = await api.put(`/storage/files/${id}/rename`, { newName });
+    return resp.data;
+  } catch (e: any) {
+    if (e.response?.data?.error) {
+      const err = new Error(e.response.data.error);
+      (err as any).suggestedName = e.response.data.suggestedName;
+      throw err;
+    }
+    throw new Error("Unknown error while renaming file");
+  }
+}
+
+export async function renameFolder(id: string, newName: string) {
+  try {
+    const resp = await api.put(`/storage/folders/${id}/rename`, { newName });
+    return resp.data;
+  } catch (e: any) {
+    if (e.response?.data?.error) {
+      const err = new Error(e.response.data.error);
+      (err as any).suggestedName = e.response.data.suggestedName;
+      throw err;
+    }
+    throw new Error("Unknown error while renaming folder");
+  }
+}

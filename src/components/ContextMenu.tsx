@@ -2,15 +2,20 @@ import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Download, Edit, Trash2, Copy, Move, Info } from "lucide-react";
 
+
+interface ContextMenuItem {
+  id: string;
+  type: "folder" | "file";
+  name: string;
+}
+
 interface ContextMenuProps {
   x: number;
   y: number;
-  item: {
-    id: string;
-    type: "folder" | "file";
-  } | null;
+  item: ContextMenuItem | null;
   onDownload: (id: string) => void;
   onProperties: (id: string) => void;
+  onRename: (item: ContextMenuItem) => void;
   onClose: () => void;
   onDelete: (item: { id: string; type: "folder" | "file" }) => void;
 }
@@ -21,6 +26,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   item,
   onDownload,
   onProperties,
+  onRename,
   onClose,
   onDelete
 }) => {
@@ -77,6 +83,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
         <MenuItem
           icon={<Edit size={16} />}
           label="Rename"
+          onClick={() => onRename(item)}
           onClose={onClose}
         />
 

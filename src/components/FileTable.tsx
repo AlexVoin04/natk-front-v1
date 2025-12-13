@@ -42,12 +42,13 @@ interface FileTableProps {
   onDownloadFile: (id: string) => void;
   onOpenProperties?: (id: string) => void;
   onSortChange: (field: 'name' | 'createdAt', dir: 'asc' | 'desc') => void;
+  onRename?: (item: { id: string; type: "folder" | "file"; name: string }) => void;
   onDeleteItem: (id: string, type: "file" | "folder") => void;
   sortField: 'name' | 'createdAt';
   sortDirection: 'asc' | 'desc';
 }
 
-  const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onItemDoubleClick, onDownloadFile, onOpenProperties, onDeleteItem }) => {
+  const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onItemDoubleClick, onDownloadFile, onOpenProperties, onDeleteItem, onRename }) => {
     const [selectedItems, setSelectedItems] = useState<string[]>([]);
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; itemId: string } | null>(null);
     const [showTooltipFor, setShowTooltipFor] = useState<string | null>(null);
@@ -174,6 +175,7 @@ interface FileTableProps {
           item={items.find(i => i.id === contextMenu?.itemId) || null}
           onDownload={onDownloadFile}
           onProperties={onOpenProperties || (() => {})}
+          onRename={(itm) => onRename && onRename(itm)}
           onClose={() => setContextMenu(null)}
           onDelete={(item) => onDeleteItem(item.id, item.type)}
         />
@@ -260,6 +262,7 @@ interface FileTableProps {
         item={items.find(i => i.id === contextMenu?.itemId) || null}
         onDownload={onDownloadFile}
         onProperties={onOpenProperties || (() => {})}
+        onRename={(itm) => onRename && onRename(itm)}
         onClose={() => setContextMenu(null)}
         onDelete={(item) => onDeleteItem(item.id, item.type)}
       />

@@ -6,10 +6,11 @@ import ActionBar from '../components/ActionBar';
 import FileTable from '../components/FileTable';
 import CreateFolderDialog from '../components/CreateFolderDialog';
 import UploadDialog from '../components/UploadDialog';
+import RenameDialog from "../components/RenameDialog";
 import FilePropertiesDialog from '../components/FilePropertiesDialog';
 import Footer from '../components/Footer';
 import { toast } from 'react-toastify';
-import { fetchFolderItems, downloadFile, createFolder, fetchFileInfo, deleteFile, deleteFolder } from '../services/storage';
+import { fetchFolderItems, downloadFile, createFolder, fetchFileInfo, deleteFile, deleteFolder, renameFile, renameFolder } from '../services/storage';
 import { resolveFileIcon } from "../components/FileTable";
 
 interface FileItem {
@@ -46,6 +47,8 @@ const Home: React.FC = () => {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [isPropertiesOpen, setIsPropertiesOpen] = useState(false);
   const [selectedFileInfo, setSelectedFileInfo] = useState<any | null>(null);
+  const [renameTarget, setRenameTarget] = useState<{ id: string; type: "file" | "folder"; name: string } | null>(null);
+  const [renameSuggested, setRenameSuggested] = useState<string | null>(null);
 
   // При смене папки — загружаем её содержимое
   useEffect(() => {
@@ -212,6 +215,43 @@ const Home: React.FC = () => {
     });
   };
 
+  const handleOpenRename = (item: { id: string; type: "folder" | "file"; name?: string } | null) => {
+    if (!item) return;
+    setRenameSuggested(null);
+    setRenameTarget({ id: item.id, type: item.type as "file" | "folder", name: item.name ?? "" });
+  };
+
+  const handleConfirmRename = async (newName: string) => {
+    if (!renameTarget) return;
+
+    try {
+      if (renameTarget.type === "file") {
+        const resp = await renameFile(renameTarget.id, newName);
+        toast.success(`Файл переименован в "${resp.name}"`);
+      } else {
+        const resp = await renameFolder(renameTarget.id, newName);
+        toast.success(`Папка переименована в "${resp.name}"`);
+      }
+
+      // обновляем текущую директорию
+      const updated = await fetchFolderItems(currentFolderId);
+      setFiles(mapItems(updated.items));
+
+      // Закрываем диалог
+      setRenameTarget(null);
+      setRenameSuggested(null);
+    } catch (e: any) {
+      // если сервер вернул suggestedName — передаём его в диалог
+      if ((e as any).suggestedName) {
+        setRenameSuggested((e as any).suggestedName);
+        // выбрасываем дальше, чтобы RenameDialog показал сообщение
+        throw e;
+      }
+      // иначе просто пробросим сообщение
+      throw e;
+    }
+  };
+
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       <Header />
@@ -255,6 +295,7 @@ const Home: React.FC = () => {
                 onDownloadFile={(id) => downloadFile(id)}
                 onOpenProperties={handleOpenProperties}
                 onDeleteItem={handleDeleteItem}
+                onRename={(item) => handleOpenRename(item)}
                 onSortChange={(field, dir) => {
                   setSortField(field);
                   setSortDirection(dir);
@@ -286,6 +327,14 @@ const Home: React.FC = () => {
         isOpen={isPropertiesOpen}
         onClose={() => setIsPropertiesOpen(false)}
         file={selectedFileInfo}
+      />
+
+      <RenameDialog
+        isOpen={!!renameTarget}
+        onClose={() => { setRenameTarget(null); setRenameSuggested(null);}}
+        currentName={renameTarget?.name ?? ""}
+        onConfirm={handleConfirmRename}
+        suggestedName={renameSuggested}
       />
     </div>
   );
