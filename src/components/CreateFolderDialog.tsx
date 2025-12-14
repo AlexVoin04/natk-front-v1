@@ -4,12 +4,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface CreateFolderDialogProps {
   isOpen: boolean;
+  parentId: string | null;
+  parentName: string;
   onClose: () => void;
-  onConfirm: (name: string) => void;
+  onConfirm: (name: string) => Promise<
+    | void
+    | { error: string; suggestedName?: string }
+  >;
 }
 
 const CreateFolderDialog: React.FC<CreateFolderDialogProps> = ({
   isOpen,
+  parentId,
+  parentName,
   onClose,
   onConfirm
 }) => {
@@ -77,6 +84,9 @@ const CreateFolderDialog: React.FC<CreateFolderDialogProps> = ({
 
             <form onSubmit={handleSubmit}>
               <div className="mb-4">
+                <div className="mb-4 text-sm text-gray-600">
+                  Creating in: <span className="font-medium">{parentName}</span>
+                </div>
                 <label htmlFor="folderName" className="block text-sm font-medium text-[#3A3A3C] mb-2">
                   Folder Name
                 </label>

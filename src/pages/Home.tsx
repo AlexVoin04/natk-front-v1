@@ -7,6 +7,7 @@ import FileTable from '../components/FileTable';
 import CreateFolderDialog from '../components/CreateFolderDialog';
 import UploadDialog from '../components/UploadDialog';
 import RenameDialog from "../components/RenameDialog";
+import CopyFileDialog from '../components/CopyFileDialog';
 import FilePropertiesDialog from '../components/FilePropertiesDialog';
 import Footer from '../components/Footer';
 import { toast } from 'react-toastify';
@@ -40,7 +41,6 @@ const Home: React.FC = () => {
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [breadcrumbItems, setBreadcrumbItems] = useState<{ name: string; id: string | null }[]>([]);
-  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null); // null = root ("Все файлы")
   const [currentPath, setCurrentPath] = useState<string>('Все файлы');
   const [loading, setLoading] = useState(false);
   const [sortField, setSortField] = useState<'name' | 'createdAt'>('name');
@@ -49,6 +49,12 @@ const Home: React.FC = () => {
   const [selectedFileInfo, setSelectedFileInfo] = useState<any | null>(null);
   const [renameTarget, setRenameTarget] = useState<{ id: string; type: "file" | "folder"; name: string } | null>(null);
   const [renameSuggested, setRenameSuggested] = useState<string | null>(null);
+  const [copyDialogOpen, setCopyDialogOpen] = useState(false);
+  const [copyFileId, setCopyFileId] = useState<string | null>(null);
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  const [createFolderParent, setCreateFolderParent] = useState<string | null>(null);  // null = root ("Все файлы")
+  const [createFolderParentName, setCreateFolderParentName] = useState("Все файлы");
+  const [folderTreeVersion, setFolderTreeVersion] = useState(0);
 
   // При смене папки — загружаем её содержимое
   useEffect(() => {
@@ -266,6 +272,52 @@ const Home: React.FC = () => {
     }
   };
 
+  const handleCopyRequest = (fileId: string) => {
+    setCopyFileId(fileId);
+    setCopyDialogOpen(true);
+  };
+
+  const handleConfirmCopy = async (targetFolderId: string | null) => {
+    if (!copyFileId) return;
+
+    const resp = await copyFile(copyFileId, targetFolderId);
+    toast.success(`Скопировано как "${resp.name}"`);
+
+    const updated = await fetchFolderItems(currentFolderId);
+    setFiles(mapItems(updated.items));
+
+    setCopyDialogOpen(false);
+    setCopyFileId(null);
+  };
+
+  const handleCreateFolderInCopy = (parentId: string | null, parentName: string) => {
+    setCreateFolderParent(parentId);
+    setCreateFolderParentName(parentName);
+    setIsCreateFolderOpen(true);
+  };
+
+  const handleCreateFolderConfirm = async (name: string) => {
+    try {
+      await createFolder(createFolderParent, name);
+
+      toast.success(`Папка "${name}" создана`);
+
+      setFolderTreeVersion(v => v + 1);
+
+      const resp = await fetchFolderItems(currentFolderId);
+      setFiles(mapItems(resp.items));
+
+      setIsCreateFolderOpen(false);
+      setCreateFolderParent(null);
+
+    } catch (e: any) {
+      return {
+        error: e.message || "Ошибка при создании папки",
+        suggestedName: e.suggestedName
+      };
+    }
+  };
+
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       <Header />
@@ -284,7 +336,17 @@ const Home: React.FC = () => {
           
           <ActionBar
             onUploadFile={() => setIsUploadOpen(true)}
-            onCreateFolder={() => setIsCreateFolderOpen(true)}
+            onCreateFolder={() => {
+              setCreateFolderParent(currentFolderId);
+
+              const currentName =
+              currentFolderId === null
+                ? "Все файлы"
+                : (currentPath ? currentPath.split("/").filter(Boolean).pop() : "Папка") || "Папка";
+
+              setCreateFolderParentName(currentName);
+              setIsCreateFolderOpen(true);
+            }}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
 
@@ -310,7 +372,8 @@ const Home: React.FC = () => {
                 onOpenProperties={handleOpenProperties}
                 onDeleteItem={handleDeleteItem}
                 onRename={(item) => handleOpenRename(item)}
-                onCopy={(id) => handleCopyItem(id)}
+                // onCopy={(id) => handleCopyItem(id)}
+                onCopy={(id) => handleCopyRequest(id)}
                 onSortChange={(field, dir) => {
                   setSortField(field);
                   setSortDirection(dir);
@@ -324,12 +387,6 @@ const Home: React.FC = () => {
       </div>
 
       <Footer />
-
-      <CreateFolderDialog
-        isOpen={isCreateFolderOpen}
-        onClose={() => setIsCreateFolderOpen(false)}
-        onConfirm={handleCreateFolder}
-      />
 
       <UploadDialog
         isOpen={isUploadOpen}
@@ -350,6 +407,26 @@ const Home: React.FC = () => {
         currentName={renameTarget?.name ?? ""}
         onConfirm={handleConfirmRename}
         suggestedName={renameSuggested}
+      />
+
+      <CopyFileDialog
+        isOpen={copyDialogOpen}
+        onClose={() => setCopyDialogOpen(false)}
+        onConfirm={handleConfirmCopy}
+        onCreateFolder={handleCreateFolderInCopy}
+        treeVersion={folderTreeVersion}
+      />
+
+      <CreateFolderDialog
+        isOpen={isCreateFolderOpen}
+        parentId={createFolderParent}
+        parentName={createFolderParentName}
+        onClose={() => {
+          setIsCreateFolderOpen(false);
+          setCreateFolderParent(null);
+          setCreateFolderParentName("Все файлы");
+        }}
+        onConfirm={handleCreateFolderConfirm}
       />
     </div>
   );
