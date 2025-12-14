@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Upload, FolderPlus, Search, Grid, List, SortAsc } from 'lucide-react';
 
 interface ActionBarProps {
@@ -6,14 +6,37 @@ interface ActionBarProps {
   onCreateFolder: () => void;
   viewMode: 'grid' | 'list';
   onViewModeChange: (mode: 'grid' | 'list') => void;
+  onSortChange: (field: 'name' | 'createdAt', dir: 'asc' | 'desc') => void;
+  sortField: 'name' | 'createdAt';
+  sortDirection: 'asc' | 'desc';
 }
 
-const ActionBar: React.FC<ActionBarProps> = ({
-  onUploadFile,
-  onCreateFolder,
-  viewMode,
-  onViewModeChange
-}) => {
+const ActionBar: React.FC<ActionBarProps> = (props) => {
+  const {
+    onUploadFile,
+    onCreateFolder,
+    viewMode,
+    onViewModeChange,
+    onSortChange,
+    sortField,
+    sortDirection
+  } = props;
+
+  const [openSort, setOpenSort] = useState(false);
+  const sortRef = useRef<HTMLDivElement>(null);
+
+  // Закрытие при клике вне элемента
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
+        setOpenSort(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
     <div className="flex items-center justify-between mb-6">
       <div className="flex items-center space-x-3">
@@ -63,9 +86,39 @@ const ActionBar: React.FC<ActionBarProps> = ({
           </button>
         </div>
 
-        <button className="p-2 text-[#3A3A3C] hover:bg-gray-100 rounded-xl transition-colors">
-          <SortAsc size={16} />
-        </button>
+        <div className="relative" ref={sortRef}>
+          <button
+            className="p-2 text-[#3A3A3C] hover:text-blue-600 rounded-xl transition-colors"
+            onClick={() => setOpenSort(prev => !prev)}
+          >
+            <SortAsc
+              size={16}
+              className={`transform transition-transform duration-200 ${
+                openSort ? "rotate-180" : "rotate-0"
+              }`}
+            />
+          </button>
+
+          {openSort && (
+            <div className="absolute right-0 mt-2 bg-white border rounded-xl shadow-lg p-2 w-44 text-sm z-20">
+              <div className="font-medium mb-2 text-gray-600">Sort by</div>
+
+              <button
+                className="block w-full text-left py-1 px-2 hover:bg-gray-100 rounded"
+                onClick={() => onSortChange('name', sortDirection === 'asc' ? 'desc' : 'asc')}
+              >
+                Name {sortField === 'name' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+              </button>
+
+              <button
+                className="block w-full text-left py-1 px-2 hover:bg-gray-100 rounded"
+                onClick={() => onSortChange('createdAt', sortDirection === 'asc' ? 'desc' : 'asc')}
+              >
+                Created {sortField === 'createdAt' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
