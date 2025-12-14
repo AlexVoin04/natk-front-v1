@@ -59,6 +59,7 @@ const Sidebar: React.FC<Props> = ({ onFolderClick, refreshTrigger }) => {
   const [tooltipTarget, setTooltipTarget] = useState<HTMLElement | null>(null);
   const [tooltipText, setTooltipText] = useState('');
   const location = useLocation();
+  const isHomePage = ["/"].includes(location.pathname);
 
   useEffect(() => {
     const loadFolders = async () => {
@@ -194,8 +195,8 @@ const Sidebar: React.FC<Props> = ({ onFolderClick, refreshTrigger }) => {
 };
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 h-full overflow-y-auto">
-      <div className="p-4">
+    <aside className="w-64 bg-white border-r border-b border-gray-200 flex flex-col">
+      <div className="p-4 flex flex-col flex-1 overflow-hidden">
         <nav className="space-y-2">
           <Link
             to="/"
@@ -222,21 +223,25 @@ const Sidebar: React.FC<Props> = ({ onFolderClick, refreshTrigger }) => {
           </Link>
         </nav>
 
-        <div className="mt-6">
-          <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
-            Folders
-          </h3>
+        <hr className="border-gray-200 my-4" />
 
-          {loading ? (
-            <p className="text-sm text-gray-400 px-3">Loading...</p>
-          ) : folders.length === 0 ? (
-            <p className="text-sm text-gray-400 px-3">No folders</p>
-          ) : (
-            <div className="space-y-1">
-              {renderTree(folders)}
-            </div>
-          )}
-        </div>
+        {isHomePage && (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
+              Folders
+            </h3>
+
+            {loading ? (
+              <p className="text-sm text-gray-400 px-3">Loading...</p>
+            ) : folders.length === 0 ? (
+              <p className="text-sm text-gray-400 px-3">No folders</p>
+            ) : (
+              <div className="flex-1 overflow-y-auto space-y-1">
+                {renderTree(folders)}
+              </div>
+            )}
+          </div>
+        )}
       </div>
       {/* Портальный тултип */}
       <Tooltip text={tooltipText} target={tooltipTarget} />
