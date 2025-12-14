@@ -10,7 +10,7 @@ import RenameDialog from "../components/RenameDialog";
 import FilePropertiesDialog from '../components/FilePropertiesDialog';
 import Footer from '../components/Footer';
 import { toast } from 'react-toastify';
-import { fetchFolderItems, downloadFile, createFolder, fetchFileInfo, deleteFile, deleteFolder, renameFile, renameFolder } from '../services/storage';
+import { fetchFolderItems, downloadFile, createFolder, fetchFileInfo, deleteFile, deleteFolder, renameFile, renameFolder, copyFile } from '../services/storage';
 import { resolveFileIcon } from "../components/FileTable";
 
 interface FileItem {
@@ -252,6 +252,20 @@ const Home: React.FC = () => {
     }
   };
 
+  const handleCopyItem = async (fileId: string) => {
+    try {
+      const resp = await copyFile(fileId, currentFolderId ?? null);
+      // resp содержит данные нового файла, можно показать имя
+      toast.success(`Скопировано как "${resp.name}"`);
+      // Обновляем список текущей директории
+      const updated = await fetchFolderItems(currentFolderId);
+      setFiles(mapItems(updated.items));
+    } catch (e) {
+      console.error("Copy failed", e);
+      toast.error("Не удалось скопировать файл");
+    }
+  };
+
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       <Header />
@@ -296,6 +310,7 @@ const Home: React.FC = () => {
                 onOpenProperties={handleOpenProperties}
                 onDeleteItem={handleDeleteItem}
                 onRename={(item) => handleOpenRename(item)}
+                onCopy={(id) => handleCopyItem(id)}
                 onSortChange={(field, dir) => {
                   setSortField(field);
                   setSortDirection(dir);

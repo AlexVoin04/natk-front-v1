@@ -16,6 +16,7 @@ interface ContextMenuProps {
   onDownload: (id: string) => void;
   onProperties: (id: string) => void;
   onRename: (item: ContextMenuItem) => void;
+  onCopy: (id: string) => void;
   onClose: () => void;
   onDelete: (item: { id: string; type: "folder" | "file" }) => void;
 }
@@ -27,6 +28,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   onDownload,
   onProperties,
   onRename,
+  onCopy,
   onClose,
   onDelete
 }) => {
@@ -91,6 +93,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
           disabled={isFolder}
           icon={<Copy size={16} />}
           label="Copy"
+          onClick={() => !isFolder && onCopy(item.id)}
           onClose={onClose}
         />
 

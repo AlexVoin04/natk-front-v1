@@ -196,3 +196,18 @@ export async function renameFolder(id: string, newName: string) {
     throw new Error("Unknown error while renaming folder");
   }
 }
+
+export async function copyFile(id: string, targetFolderId?: string | null) {
+  try {
+    // POST /storage/files/{id}/copy?targetFolderId=...
+    const resp = await api.post(`/storage/files/${id}/copy`, null, {
+      params: { targetFolderId: targetFolderId ?? null }
+    });
+    console.log("Файл скопирован");
+    return resp.data;
+  } catch (e: any) {
+    const msg = e?.response?.data?.error || "Ошибка при копировании файла";
+    toast.error(msg);
+    throw e;
+  }
+}
