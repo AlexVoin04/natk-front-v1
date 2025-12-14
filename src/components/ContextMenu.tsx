@@ -19,6 +19,7 @@ interface ContextMenuProps {
   onCopy: (id: string) => void;
   onClose: () => void;
   onDelete: (item: { id: string; type: "folder" | "file" }) => void;
+  onMove: (item: ContextMenuItem) => void;
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({
@@ -30,7 +31,8 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   onRename,
   onCopy,
   onClose,
-  onDelete
+  onDelete,
+  onMove
 }) => {
   const [pos, setPos] = useState({ x, y });
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -100,6 +102,9 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
         <MenuItem
           icon={<Move size={16} />}
           label="Move"
+          onClick={() => {
+            if (item) onMove(item);
+          }}
           onClose={onClose}
         />
 

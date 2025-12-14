@@ -203,10 +203,37 @@ export async function copyFile(id: string, targetFolderId?: string | null) {
     const resp = await api.post(`/storage/files/${id}/copy`, null, {
       params: { targetFolderId: targetFolderId ?? null }
     });
-    console.log("Файл скопирован");
     return resp.data;
   } catch (e: any) {
     const msg = e?.response?.data?.error || "Ошибка при копировании файла";
+    toast.error(msg);
+    throw e;
+  }
+}
+
+export async function moveFile(id: string, targetFolderId: string | null) {
+  try {
+    const resp = await api.put(`/storage/files/${id}/move`, {
+      newFolderId: targetFolderId,
+      moveToRoot: targetFolderId === null
+    });
+    return resp.data;
+  } catch (e: any) {
+    const msg = e?.response?.data?.error || "Ошибка при перемещении файла";
+    toast.error(msg);
+    throw e;
+  }
+}
+
+export async function moveFolder(id: string, targetFolderId: string | null) {
+  try {
+    const resp = await api.put(`/storage/folders/${id}/move`, {
+      newParentFolderId: targetFolderId,
+      moveToRoot: targetFolderId === null
+    });
+    return resp.data;
+  } catch (e: any) {
+    const msg = e?.response?.data?.error || "Ошибка при перемещении папки";
     toast.error(msg);
     throw e;
   }

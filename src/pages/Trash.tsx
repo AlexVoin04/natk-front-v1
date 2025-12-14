@@ -4,12 +4,16 @@ import Sidebar from '../components/Sidebar';
 import { Trash2, RotateCcw, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
-import { fetchTrashItems, type TrashItemDto } from "../services/trash";
+import { fetchTrashItems, type TrashItemDto, restoreTrashItem } from "../services/trash";
+import CopyFileDialog from '../components/CopyFileDialog';
 
 const Trash: React.FC = () => {
   const [trashItems, setTrashItems] = useState<TrashItemDto[]>([]);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
+  const [restoreTarget, setRestoreTarget] = useState<TrashItemDto | null>(null);
+  const [folderTreeVersion, setFolderTreeVersion] = useState(0);
 
   useEffect(() => {
     loadTrash();
@@ -27,16 +31,28 @@ const Trash: React.FC = () => {
     }
   };
 
-  const handleRestore = (itemId: TrashItemDto) => {
-    // TODO: реализовать восстановление через API
-    // const item = trashItems.find(i => i.id === itemId);
-    // if (item) {
-    //   setTrashItems(prev => prev.filter(i => i.id !== itemId));
-    //   toast.success(`"${item.name}" restored successfully`);
-    // }
+  const handleRestore = (item: TrashItemDto) => {
+    setRestoreTarget(item);
+    setRestoreDialogOpen(true);
   };
 
-  const handlePermanentDelete = async (itemId: TrashItemDto) => {
+  const confirmRestore = async (targetFolderId: string | null) => {
+    if (!restoreTarget) return;
+
+    try {
+      await restoreTrashItem(restoreTarget, targetFolderId);
+
+      toast.success(`"${restoreTarget.name}" восстановлен`);
+      setTrashItems(prev => prev.filter(i => i.id !== restoreTarget.id));
+    } catch (e) {
+      toast.error("Не удалось восстановить элемент");
+    } finally {
+      setRestoreDialogOpen(false);
+      setRestoreTarget(null);
+    }
+  };
+
+  const handlePermanentDelete = async (item: TrashItemDto) => {
     // TODO: реализовать удаление через API
     // const item = trashItems.find(i => i.id === itemId);
     // if (item) {
@@ -162,6 +178,15 @@ const Trash: React.FC = () => {
             )}
           </main>
         </div>
+
+        <CopyFileDialog
+          isOpen={restoreDialogOpen}
+          onClose={() => setRestoreDialogOpen(false)}
+          onConfirm={confirmRestore}
+          onCreateFolder={() => {}}
+          treeVersion={folderTreeVersion}
+          mode="restore"
+        />
       </div>
     );
   };

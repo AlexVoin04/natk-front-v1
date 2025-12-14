@@ -11,7 +11,7 @@ import CopyFileDialog from '../components/CopyFileDialog';
 import FilePropertiesDialog from '../components/FilePropertiesDialog';
 import Footer from '../components/Footer';
 import { toast } from 'react-toastify';
-import { fetchFolderItems, downloadFile, createFolder, fetchFileInfo, deleteFile, deleteFolder, renameFile, renameFolder, copyFile } from '../services/storage';
+import { fetchFolderItems, downloadFile, createFolder, fetchFileInfo, deleteFile, deleteFolder, renameFile, renameFolder, copyFile, moveFile, moveFolder } from '../services/storage';
 import { resolveFileIcon } from "../components/FileTable";
 
 interface FileItem {
@@ -55,6 +55,9 @@ const Home: React.FC = () => {
   const [createFolderParent, setCreateFolderParent] = useState<string | null>(null);  // null = root ("Все файлы")
   const [createFolderParentName, setCreateFolderParentName] = useState("Все файлы");
   const [folderTreeVersion, setFolderTreeVersion] = useState(0);
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [moveTargetId, setMoveTargetId] = useState<string | null>(null);
+  const [moveItem, setMoveItem] = useState<{ id: string; type: "file" | "folder"; name: string } | null>(null);
 
   // При смене папки — загружаем её содержимое
   useEffect(() => {
@@ -258,20 +261,6 @@ const Home: React.FC = () => {
     }
   };
 
-  const handleCopyItem = async (fileId: string) => {
-    try {
-      const resp = await copyFile(fileId, currentFolderId ?? null);
-      // resp содержит данные нового файла, можно показать имя
-      toast.success(`Скопировано как "${resp.name}"`);
-      // Обновляем список текущей директории
-      const updated = await fetchFolderItems(currentFolderId);
-      setFiles(mapItems(updated.items));
-    } catch (e) {
-      console.error("Copy failed", e);
-      toast.error("Не удалось скопировать файл");
-    }
-  };
-
   const handleCopyRequest = (fileId: string) => {
     setCopyFileId(fileId);
     setCopyDialogOpen(true);
@@ -316,6 +305,34 @@ const Home: React.FC = () => {
         suggestedName: e.suggestedName
       };
     }
+  };
+
+  const handleConfirmMove = async (targetFolderId: string | null) => {
+    if (!moveItem) return;
+
+    try {
+      if (moveItem.type === "file") {
+        const resp = await moveFile(moveItem.id, targetFolderId);
+        toast.success(`Файл "${resp.name}" перемещён`);
+      } else {
+        const resp = await moveFolder(moveItem.id, targetFolderId);
+        toast.success(`Папка "${resp.name}" перемещена`);
+      }
+
+      const updated = await fetchFolderItems(currentFolderId);
+      setFiles(mapItems(updated.items));
+
+    } catch (e) {
+      console.error("Move failed", e);
+    } finally {
+      setMoveDialogOpen(false);
+      setMoveItem(null);
+    }
+  };
+
+  const handleMoveRequest = (item: { id: string; type: "file" | "folder"; name: string }) => {
+    setMoveItem(item);
+    setMoveDialogOpen(true);
   };
 
   return (
@@ -372,6 +389,7 @@ const Home: React.FC = () => {
                 onOpenProperties={handleOpenProperties}
                 onDeleteItem={handleDeleteItem}
                 onRename={(item) => handleOpenRename(item)}
+                onMove={(item) => handleMoveRequest(item)}
                 // onCopy={(id) => handleCopyItem(id)}
                 onCopy={(id) => handleCopyRequest(id)}
                 onSortChange={(field, dir) => {
@@ -415,6 +433,16 @@ const Home: React.FC = () => {
         onConfirm={handleConfirmCopy}
         onCreateFolder={handleCreateFolderInCopy}
         treeVersion={folderTreeVersion}
+        mode="copy"
+      />
+
+      <CopyFileDialog
+        isOpen={moveDialogOpen}
+        onClose={() => setMoveDialogOpen(false)}
+        onConfirm={handleConfirmMove}
+        onCreateFolder={handleCreateFolderInCopy}
+        treeVersion={folderTreeVersion}
+        mode="move"
       />
 
       <CreateFolderDialog
