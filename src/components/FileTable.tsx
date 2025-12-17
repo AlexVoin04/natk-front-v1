@@ -13,7 +13,7 @@ import {
 import { format } from 'date-fns';
 import ContextMenu from "./ContextMenu";
 
-const fileTypeMap: Record<string, JSX.Element> = {
+const fileTypeMap: Record<string, React.JSX.Element> = {
   image: <Image size={48} className="text-green-500" />,
   video: <Video size={48} className="text-red-500" />,
   audio: <Music size={48} className="text-purple-500" />,

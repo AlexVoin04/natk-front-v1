@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = import.meta.env.VITE_AUTH_BASE || 'http://localhost:8001';
+const BASE_URL = import.meta.env.VITE_AUTH_BASE ?? '/auth';
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -25,7 +25,7 @@ async function refreshToken(): Promise<string | null> {
   if (!token) return null;
 
   try {
-    const resp = await axios.get(`${BASE_URL}/auth/tokens/refresh`, {
+    const resp = await axios.get(`${BASE_URL}/tokens/refresh`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const newToken = resp.data?.token || resp.data?.accessToken || null;
