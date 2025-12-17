@@ -11,7 +11,7 @@ export default defineConfig({
         changeOrigin: true,
       },
 
-      // api: /api/storage -> http://localhost:8000/storage (вырезаем /api)
+      // api: /api/storage -> http://localhost:8000/api/*
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
