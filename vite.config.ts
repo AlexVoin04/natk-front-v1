@@ -4,7 +4,20 @@ import { defineConfig } from "vite";
 export default defineConfig({
   plugins: [react()],
   server: {
-    allowedHosts: true,
+    proxy: {
+      // auth: /auth/* -> http://localhost:8001/auth/*
+      '/auth': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+      },
+
+      // api: /api/storage -> http://localhost:8000/api/*
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    },
   },
   esbuild: {
     logOverride: {

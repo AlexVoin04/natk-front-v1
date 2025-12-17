@@ -143,7 +143,7 @@ const Sidebar: React.FC<Props> = ({ onFolderClick, refreshTrigger }) => {
     setTooltipText('');
   };
 
-  const renderTree = (nodes: FolderNode[], level = 0): JSX.Element[] => {
+  const renderTree = (nodes: FolderNode[], level = 0): React.JSX.Element[] => {
   return nodes.map(node => (
     <div key={node.id} className="select-none">
       <div

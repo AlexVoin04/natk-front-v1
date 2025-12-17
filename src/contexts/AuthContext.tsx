@@ -70,7 +70,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (login: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
     try {
-      const resp = await api.post('/auth/login', {
+      const resp = await api.post('/login', {
         login: login,
         password: password,
       });
@@ -108,7 +108,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoading(true);
     try {
       // backend expects login (we will use email as login). Also roles required in your service.
-      await api.post('/auth/register', {
+      await api.post('/register', {
         login: email,
         password,
         name,
@@ -118,7 +118,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
       const logged = await login(email, password);
       setIsLoading(false);
-      return { success: logged};
+      return { success: logged.success};
     } catch (err: any) {
       setIsLoading(false);
       const serverMessage =
@@ -126,7 +126,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         err.response?.data?.error ||
         "Registration failed";
 
-    return { success: false, error: serverMessage };
+      return { success: false, error: serverMessage };
     }
   };
 
