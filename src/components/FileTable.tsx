@@ -48,12 +48,41 @@ interface FileTableProps {
   onMove?: (item: { id: string; type: "folder" | "file"; name: string }) => void;
   sortField: 'name' | 'createdAt';
   sortDirection: 'asc' | 'desc';
+  onCreateFolder: () => void;
+  onUploadFile: () => void;
 }
 
-  const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onItemDoubleClick, onDownloadFile, onOpenProperties, onDeleteItem, onRename, onCopy, onMove }) => {
-    const [selectedItems, setSelectedItems] = useState<string[]>([]);
-    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; itemId: string } | null>(null);
-    const [showTooltipFor, setShowTooltipFor] = useState<string | null>(null);
+const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onCreateFolder, onUploadFile, onItemDoubleClick, onDownloadFile, onOpenProperties, onDeleteItem, onRename, onCopy, onMove }) => {
+  if (items.length === 0) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-12 flex flex-col items-center justify-center flex-1 min-h-[300px]">
+        <Folder size={64} className="text-gray-300 mb-4" />
+        <h3 className="text-lg font-medium text-[#3A3A3C] mb-2">The folder is empty</h3>
+        <p className="text-sm text-gray-500 mb-6">
+          There are no files or folders here yet
+        </p>
+        <div className="flex gap-3 text-sm text-gray-500">
+          <button 
+            className="flex items-center gap-1 hover:text-[#4B67F5] transition-colors"
+            onClick={onCreateFolder}
+          >
+            Create a folder
+          </button>
+          <span>•</span>
+          <button 
+            className="hover:text-[#4B67F5] transition-colors"
+            onClick={onUploadFile}
+          >
+            Upload files
+          </button>
+        </div>
+      </div>
+    );
+  }
+    
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; itemId: string } | null>(null);
+  const [showTooltipFor, setShowTooltipFor] = useState<string | null>(null);
 
   const formatFileSize = (bytes?: number) => {
     if (!bytes) return '-';

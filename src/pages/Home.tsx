@@ -377,6 +377,15 @@ const Home: React.FC = () => {
                 }}
                 sortField={sortField}
                 sortDirection={sortDirection}
+                onCreateFolder={() => {
+                  const currentName = currentFolderId === null
+                    ? "Все файлы"
+                    : (currentPath ? currentPath.split("/").filter(Boolean).pop() : "Папка") || "Папка";
+                  setCreateFolderParent(currentFolderId);
+                  setCreateFolderParentName(currentName);
+                  setIsCreateFolderOpen(true);
+                }}
+                onUploadFile={() => setIsUploadOpen(true)}
               />
             )}
           </div>
