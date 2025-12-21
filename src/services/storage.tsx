@@ -11,6 +11,8 @@ export async function fetchFolderTree(): Promise<FolderTreeDto[]> {
 export type FolderContentResponseDto = {
   folderId: string | null;
   path: string;
+  pathIds: string[];
+  pathNames: string[];
   items: Array<{
     id: string;
     name: string;
@@ -18,11 +20,6 @@ export type FolderContentResponseDto = {
     createdAt: string;
     updatedAt: string | null;
   }>;
-  /**
-   * надо фиксить бэкенд для крошек:
-   * pathIds: string[]; // ['all', 'id1', 'id2']
-   * pathNames: string[]; // ['Все файлы', 'Папка1', 'Папка2']
-   */
 };
 
 /**
