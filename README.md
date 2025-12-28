@@ -6,5 +6,5 @@ npm run dev
 
 Для сборки контейнера:
 ```shell
-docker build -t natk-frontend:0.2.0 .
+docker build -t natk-frontend:0.3.0 .
 ```

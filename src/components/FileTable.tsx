@@ -19,6 +19,7 @@ import {
 import { format } from 'date-fns';
 import ContextMenu from "./ContextMenu";
 import { type FileItem } from '../services/interfaces';
+import TooltipFileNamePortal from './TooltipFileNamePortal';
 
 const fileTypeMap: Record<string, React.JSX.Element> = {
   image: <Image size={48} className="text-green-500" />,
@@ -56,6 +57,34 @@ interface FileTableProps {
   onCreateFolder: () => void;
   onUploadFile: () => void;
 }
+
+export const resolveFileIcon = (item: FileItem) => {
+  const icon =
+    item.type === 'folder'
+      ? <Folder size={48} className="text-[#eab308]" />
+      : (() => {
+          const fileType = item.fileType?.toLowerCase() || "";
+          if (fileType.includes("image")) return fileTypeMap.image;
+          if (fileType.includes("video")) return fileTypeMap.video;
+          if (fileType.includes("audio")) return fileTypeMap.audio;
+          if (fileType.includes("pdf")) return fileTypeMap.pdf;
+          if (fileType.includes("ppt") || fileType.includes("presentation")) return fileTypeMap.ppt;
+          if (fileType.includes("xls") || fileType.includes("spreadsheet")) return fileTypeMap.xls;
+          if (fileType.includes("zip") || fileType.includes("rar") || fileType.includes("7z"))
+            return fileTypeMap.archive;
+          if (fileType.includes("text")) return fileTypeMap.txt;
+          if (fileType.includes(".document"))
+            return fileTypeMap.text;
+          return <File size={48} className="text-gray-500" />;
+        })();
+
+  return (
+    <div className="relative">
+      {icon}
+      {item.type !== "folder" && <AntivirusBadge status={item.antivirusStatus} />}
+    </div>
+  );
+};
 
 const AntivirusBadge = ({ status }: { status?: string }) => {
   if (!status) return null;
@@ -98,6 +127,8 @@ const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onCreateFolder, 
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; itemId: string } | null>(null);
   const [showTooltipFor, setShowTooltipFor] = useState<string | null>(null);
+  const [tooltipTarget, setTooltipTarget] = useState<DOMRect | null>(null);
+  const [tooltipText, setTooltipText] = useState<string | null>(null);
 
   const formatFileSize = (bytes?: number| null) => {
     if (bytes == null) return '-';
@@ -168,8 +199,15 @@ const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onCreateFolder, 
               className={`group relative bg-gray-50 rounded-xl p-4 hover:bg-gray-100 cursor-pointer transition-colors border-2 ${
                 selectedItems.includes(item.id) ? 'border-[#4B67F5] bg-blue-50' : 'border-transparent'
               }`}
-              onMouseEnter={() => setShowTooltipFor(item.id)}
-              onMouseLeave={() => setShowTooltipFor(null)}
+              onMouseEnter={(e) => {
+                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                setTooltipTarget(rect);
+                setTooltipText(item.name);
+              }}
+              onMouseLeave={() => {
+                setTooltipTarget(null);
+                setTooltipText(null);
+              }}
               onClick={(e) => handleItemClick(item.id, e)}
               onDoubleClick={() => onItemDoubleClick(item)}
               onContextMenu={(e) => handleContextMenu(e, item.id)}
@@ -185,23 +223,22 @@ const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onCreateFolder, 
                   {safeFormatDate(item.createdAt)}
                 </span>
               </div>
-              {showTooltipFor === item.id && (
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 
-                                bg-black text-white text-xs py-1 px-2 rounded-lg shadow-lg 
-                                whitespace-nowrap z-10">
-                  {item.name}
-                </div>
-              )}
               
               <button
                 className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 rounded-lg transition-opacity"
                 onMouseEnter={(e) => {
                   e.stopPropagation();
-                  setShowTooltipFor(null);
+                  setTooltipTarget(null);
+                  setTooltipText(null);
                 }}
                 onMouseLeave={(e) => {
                   e.stopPropagation();
-                  setShowTooltipFor(item.id);
+                  const card = e.currentTarget.closest(".group") as HTMLElement;
+                  if (!card) return;
+
+                  const rect = card.getBoundingClientRect();
+                  setTooltipTarget(rect);
+                  setTooltipText(item.name);
                 }}
                 
                 onClick={(e) => {
@@ -227,6 +264,12 @@ const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onCreateFolder, 
           onDelete={(item) => onDeleteItem(item.id, item.type)}
           onMove={(item) => onMove && onMove(item)}
         />
+
+        {tooltipTarget && tooltipText && (
+        <TooltipFileNamePortal targetRect={tooltipTarget}>
+          {tooltipText}
+        </TooltipFileNamePortal>
+      )}
       </div>
     );
   }
@@ -255,25 +298,25 @@ const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onCreateFolder, 
                 onClick={(e) => handleItemClick(item.id, e)}
                 onDoubleClick={() => onItemDoubleClick(item)}
                 onContextMenu={(e) => handleContextMenu(e, item.id)}
-              >
+                >
                 <td className="py-3 px-4">
                   <div className="flex items-center space-x-3">
                     {resolveFileIcon(item)}
                     <span
                       className="text-[#3A3A3C] font-medium truncate"
-                      onMouseEnter={() => setShowTooltipFor(item.id)}
-                      onMouseLeave={() => setShowTooltipFor(null)}
+                      onMouseEnter={(e) => {
+                        const rect = (e.target as HTMLElement).getBoundingClientRect();
+                        setTooltipTarget(rect);
+                        setTooltipText(item.name);
+                      }}
+                      onMouseLeave={() => {
+                        setTooltipTarget(null);
+                        setTooltipText(null);
+                      }}
                     >
                       {item.name}
                     </span>
                   </div>
-                  {showTooltipFor === item.id && (
-                    <div className="absolute bottom-full left-0 mb-2 
-                                    bg-black text-white text-xs py-1 px-2 rounded-lg shadow-lg 
-                                    whitespace-nowrap z-50">
-                      {item.name}
-                    </div>
-                  )}
                 </td>
                 <td className="py-3 px-4 text-[#3A3A3C] text-sm">
                   {item.type === 'folder' ? 'Folder' : item.fileType || 'File'}
@@ -316,36 +359,14 @@ const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onCreateFolder, 
         onDelete={(item) => onDeleteItem(item.id, item.type)}
         onMove={(item) => onMove && onMove(item)}
       />
+
+      {tooltipTarget && tooltipText && (
+        <TooltipFileNamePortal targetRect={tooltipTarget}>
+          {tooltipText}
+        </TooltipFileNamePortal>
+      )}
     </div>
   );
 };
 
 export default FileTable;
-
-export const resolveFileIcon = (item: FileItem) => {
-  const icon =
-    item.type === 'folder'
-      ? <Folder size={48} className="text-[#eab308]" />
-      : (() => {
-          const fileType = item.fileType?.toLowerCase() || "";
-          if (fileType.includes("image")) return fileTypeMap.image;
-          if (fileType.includes("video")) return fileTypeMap.video;
-          if (fileType.includes("audio")) return fileTypeMap.audio;
-          if (fileType.includes("pdf")) return fileTypeMap.pdf;
-          if (fileType.includes("ppt") || fileType.includes("presentation")) return fileTypeMap.ppt;
-          if (fileType.includes("xls") || fileType.includes("spreadsheet")) return fileTypeMap.xls;
-          if (fileType.includes("zip") || fileType.includes("rar") || fileType.includes("7z"))
-            return fileTypeMap.archive;
-          if (fileType.includes("text")) return fileTypeMap.txt;
-          if (fileType.includes(".document"))
-            return fileTypeMap.text;
-          return <File size={48} className="text-gray-500" />;
-        })();
-
-  return (
-    <div className="relative">
-      {icon}
-      {item.type !== "folder" && <AntivirusBadge status={item.antivirusStatus} />}
-    </div>
-  );
-};
