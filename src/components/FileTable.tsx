@@ -9,9 +9,16 @@ import {
   Music, 
   Video, 
   MoreVertical,
+  //иконки статуса сканирования
+  ShieldCheck,
+  ShieldAlert,
+  ShieldX,
+  Loader2,
+  Clock
 } from 'lucide-react';
 import { format } from 'date-fns';
 import ContextMenu from "./ContextMenu";
+import { type FileItem } from '../services/interfaces';
 
 const fileTypeMap: Record<string, React.JSX.Element> = {
   image: <Image size={48} className="text-green-500" />,
@@ -25,15 +32,13 @@ const fileTypeMap: Record<string, React.JSX.Element> = {
   txt: <FileText size={48} className="text-gray-500" />,
 };
 
-interface FileItem {
-  id: string;
-  name: string;
-  type: 'folder' | 'file';
-  fileType?: string;
-  size?: number;
-  createdAt: string | null;
-  updatedAt: string | null;
-}
+const antivirusIcons: Record<string, React.JSX.Element> = {
+  READY: <ShieldCheck size={14} className="text-green-500" />,
+  SCANNING: <Loader2 size={14} className="text-blue-500 animate-spin" />,
+  UPLOADED_PENDING_SCAN: <Clock size={14} className="text-gray-400" />,
+  INFECTED: <ShieldX size={14} className="text-red-600" />,
+  ERROR: <ShieldAlert size={14} className="text-orange-500" />
+};
 
 interface FileTableProps {
   items: FileItem[];
@@ -51,6 +56,16 @@ interface FileTableProps {
   onCreateFolder: () => void;
   onUploadFile: () => void;
 }
+
+const AntivirusBadge = ({ status }: { status?: string }) => {
+  if (!status) return null;
+
+  return (
+    <div className="absolute -top-1 -right-1 bg-white rounded-full p-0.5 shadow">
+      {antivirusIcons[status]}
+    </div>
+  );
+};
 
 const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onCreateFolder, onUploadFile, onItemDoubleClick, onDownloadFile, onOpenProperties, onDeleteItem, onRename, onCopy, onMove }) => {
   if (items.length === 0) {
@@ -84,8 +99,8 @@ const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onCreateFolder, 
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; itemId: string } | null>(null);
   const [showTooltipFor, setShowTooltipFor] = useState<string | null>(null);
 
-  const formatFileSize = (bytes?: number) => {
-    if (!bytes) return '-';
+  const formatFileSize = (bytes?: number| null) => {
+    if (bytes == null) return '-';
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
     return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
@@ -308,22 +323,29 @@ const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onCreateFolder, 
 export default FileTable;
 
 export const resolveFileIcon = (item: FileItem) => {
-  if (item.type === 'folder')
-    return <Folder size={48} className="text-[#eab308]" />;
+  const icon =
+    item.type === 'folder'
+      ? <Folder size={48} className="text-[#eab308]" />
+      : (() => {
+          const fileType = item.fileType?.toLowerCase() || "";
+          if (fileType.includes("image")) return fileTypeMap.image;
+          if (fileType.includes("video")) return fileTypeMap.video;
+          if (fileType.includes("audio")) return fileTypeMap.audio;
+          if (fileType.includes("pdf")) return fileTypeMap.pdf;
+          if (fileType.includes("ppt") || fileType.includes("presentation")) return fileTypeMap.ppt;
+          if (fileType.includes("xls") || fileType.includes("spreadsheet")) return fileTypeMap.xls;
+          if (fileType.includes("zip") || fileType.includes("rar") || fileType.includes("7z"))
+            return fileTypeMap.archive;
+          if (fileType.includes("text")) return fileTypeMap.txt;
+          if (fileType.includes(".document"))
+            return fileTypeMap.text;
+          return <File size={48} className="text-gray-500" />;
+        })();
 
-  const fileType = item.fileType?.toLowerCase() || "";
-
-  if (fileType.includes("image")) return fileTypeMap.image;
-  if (fileType.includes("video")) return fileTypeMap.video;
-  if (fileType.includes("audio")) return fileTypeMap.audio;
-  if (fileType.includes("pdf")) return fileTypeMap.pdf;
-  if (fileType.includes("ppt") || fileType.includes("presentation")) return fileTypeMap.ppt;
-  if (fileType.includes("xls") || fileType.includes("spreadsheet")) return fileTypeMap.xls;
-  if (fileType.includes("zip") || fileType.includes("rar") || fileType.includes("7z"))
-    return fileTypeMap.archive;
-  if (fileType.includes("text")) return fileTypeMap.txt;
-  if (fileType.includes(".document"))
-    return fileTypeMap.text;
-
-  return <File size={48} className="text-gray-500" />;
+  return (
+    <div className="relative">
+      {icon}
+      {item.type !== "folder" && <AntivirusBadge status={item.antivirusStatus} />}
+    </div>
+  );
 };

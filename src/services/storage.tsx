@@ -2,6 +2,7 @@ import api from "./api";
 import type { FolderTreeDto } from "./interfaces";
 import { toast } from "react-toastify";
 import type { AxiosRequestConfig } from 'axios';
+import { type FileItem } from '../services/interfaces';
 
 export async function fetchFolderTree(): Promise<FolderTreeDto[]> {
   const resp = await api.get<FolderTreeDto[]>("/storage/folders/tree");
@@ -13,13 +14,7 @@ export type FolderContentResponseDto = {
   path: string;
   pathIds: string[];
   pathNames: string[];
-  items: Array<{
-    id: string;
-    name: string;
-    type: string; // "folder" or mime-type
-    createdAt: string;
-    updatedAt: string | null;
-  }>;
+  items: Array<FileItem>;
 };
 
 /**

@@ -13,16 +13,7 @@ import Footer from '../components/Footer';
 import { toast } from 'react-toastify';
 import { fetchFolderItems, downloadFile, createFolder, fetchFileInfo, deleteFile, deleteFolder, renameFile, renameFolder, copyFile, moveFile, moveFolder } from '../services/storage';
 import { resolveFileIcon } from "../components/FileTable";
-
-interface FileItem {
-  id: string;
-  name: string;
-  type: 'folder' | 'file';
-  fileType?: string;
-  size?: number;
-  createdAt: string | null;
-  updatedAt: string | null;
-}
+import { type FileItem } from '../services/interfaces';
 
   const mapItems = (items: any[]): FileItem[] =>
     items.map(it => ({
@@ -31,6 +22,7 @@ interface FileItem {
       type: it.type === 'folder' ? 'folder' : 'file',
       fileType: it.type === 'folder' ? undefined : it.type,
       size: it.size,
+      antivirusStatus: it.fileAntivirusStatus,
       createdAt: it.createdAt,
       updatedAt: it.updatedAt
     }));

@@ -17,3 +17,19 @@ export interface FolderTreeDto {
   depth: number;
   children: FolderTreeDto[];
 }
+
+export interface FileItem {
+  id: string;
+  name: string;
+  type: 'folder' | 'file';
+  fileType?: string;
+  size?: number | null;
+  antivirusStatus?: 
+    | "UPLOADED_PENDING_SCAN"
+    | "SCANNING"
+    | "READY"
+    | "INFECTED"
+    | "ERROR";
+  createdAt: string | null;
+  updatedAt: string | null;
+}

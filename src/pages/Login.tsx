@@ -91,7 +91,9 @@ const Login: React.FC = () => {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <div className="mx-auto w-16 h-16 bg-[#4B67F5] rounded-xl flex items-center justify-center mb-4">
-            <span className="text-white font-bold text-xl">US</span>
+            <div className="text-white font-bold text-sm">
+              <img src='/logo.svg'></img>
+            </div>
           </div>
           <h2 className="text-3xl font-bold text-[#3A3A3C]">Sign in to your account</h2>
           <p className="mt-2 text-sm text-gray-600">
