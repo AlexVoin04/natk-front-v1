@@ -14,6 +14,7 @@ import { toast } from 'react-toastify';
 import { fetchFolderItems, downloadFile, createFolder, fetchFileInfo, deleteFile, deleteFolder, renameFile, renameFolder, copyFile, moveFile, moveFolder } from '../services/storage';
 import { resolveFileIcon } from "../components/FileTable";
 import { type FileItem } from '../services/interfaces';
+import { useParams, useNavigate } from "react-router-dom";
 
   const mapItems = (items: any[]): FileItem[] =>
     items.map(it => ({
@@ -43,13 +44,16 @@ const Home: React.FC = () => {
   const [renameSuggested, setRenameSuggested] = useState<string | null>(null);
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
   const [copyFileId, setCopyFileId] = useState<string | null>(null);
-  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [createFolderParent, setCreateFolderParent] = useState<string | null>(null);  // null = root ("Все файлы")
   const [createFolderParentName, setCreateFolderParentName] = useState("Все файлы");
   const [folderTreeVersion, setFolderTreeVersion] = useState(0);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
-  const [moveTargetId, setMoveTargetId] = useState<string | null>(null);
   const [moveItem, setMoveItem] = useState<{ id: string; type: "file" | "folder"; name: string } | null>(null);
+
+  const { folderId } = useParams();
+  const navigate = useNavigate();
+
+  const currentFolderId = folderId ?? null;
 
   // При смене папки — загружаем её содержимое
   useEffect(() => {
@@ -81,7 +85,7 @@ const Home: React.FC = () => {
 
   const handleItemDoubleClick = (item: FileItem) => {
     if (item.type === 'folder') {
-      setCurrentFolderId(item.id);
+      navigate(`/folder/${item.id}`);
     } else {
       toast.info(`Opening file: ${item.name}`);
     }
@@ -166,7 +170,11 @@ const Home: React.FC = () => {
 
     // прокидываем в сайдбар — при клике на папку будет устанавливаться currentFolderId
   const handleFolderClick = (folderId: string | null) => {
-    setCurrentFolderId(folderId);
+    if (folderId === null) {
+      navigate("/");
+    } else {
+      navigate(`/folder/${folderId}`);
+    }
   };
 
   const sortItems = (items: FileItem[]) => {
@@ -319,7 +327,10 @@ const Home: React.FC = () => {
         <main className="flex-1 p-6 flex flex-col overflow-hidden">
           <Breadcrumbs
             items={breadcrumbItems}
-            onClick={(id) => setCurrentFolderId(id)}
+            onClick={(id) => {
+              if (id === null) navigate("/");
+              else navigate(`/folder/${id}`);
+            }}
           />
           
           <ActionBar

@@ -4,6 +4,7 @@ import { ChevronRight, ChevronDown, Folder, FolderOpen, Home, Trash2 } from 'luc
 import { Link, useLocation } from 'react-router-dom';
 import { fetchFolderTree } from '../services/storage';
 import type { FolderTreeDto } from '../services/interfaces';
+import { useParams } from "react-router-dom";
 
 interface FolderNode extends FolderTreeDto {
   isExpanded?: boolean;
@@ -55,28 +56,26 @@ const Tooltip: React.FC<{ text: string; target: HTMLElement | null }> = ({ text,
 const Sidebar: React.FC<Props> = ({ onFolderClick, refreshTrigger }) => {
   const [folders, setFolders] = useState<FolderNode[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+
+
+  const { folderId } = useParams();
+  const selectedFolder = folderId ?? null;
+
   const [tooltipTarget, setTooltipTarget] = useState<HTMLElement | null>(null);
   const [tooltipText, setTooltipText] = useState('');
   const location = useLocation();
-  const isHomePage = ["/"].includes(location.pathname);
+  const isFolderView =
+  location.pathname === "/" || location.pathname.startsWith("/folder/");
 
   useEffect(() => {
     const loadFolders = async () => {
       try {
         const data = await fetchFolderTree();
 
-        const savedExpanded: string[] =
-        JSON.parse(localStorage.getItem("sidebar_expanded") || "[]")
-
-        const savedSelected =
-        localStorage.getItem("sidebar_selected") || null;
-
-        // Добавляем флаг isExpanded каждому узлу
         const addFlags = (nodes: FolderTreeDto[]): FolderNode[] =>
           nodes.map(n => ({
             ...n,
-            isExpanded: savedExpanded.includes(n.id),
+            isExpanded: false,
             children: n.children ? addFlags(n.children) : []
           }));
 
@@ -88,8 +87,21 @@ const Sidebar: React.FC<Props> = ({ onFolderClick, refreshTrigger }) => {
           children: addFlags(data)
         };
 
-        setSelectedFolder(savedSelected);
-        setFolders([root]);
+        if (selectedFolder) {
+          const path = findPath([root], selectedFolder);
+          if (path) {
+            const expandPath = (nodes: FolderNode[]): FolderNode[] =>
+              nodes.map(n => ({
+                ...n,
+                isExpanded: path.includes(n.id),
+                children: n.children ? expandPath(n.children) : []
+              }));
+
+            setFolders(expandPath([root]));
+          }
+        }else {
+          setFolders([root]);
+        }
       } catch (e) {
         console.error("Failed to load folder tree", e);
       } finally {
@@ -101,37 +113,30 @@ const Sidebar: React.FC<Props> = ({ onFolderClick, refreshTrigger }) => {
   }, [refreshTrigger]);
 
   const toggleFolder = (folderId: string) => {
-    const collectExpanded = (nodes: FolderNode[], acc: string[]) => {
-      nodes.forEach(n => {
-        if (n.isExpanded) acc.push(n.id);
-        if (n.children) collectExpanded(n.children, acc);
-      });
-    };
-
     const update = (nodes: FolderNode[]): FolderNode[] =>
       nodes.map(n => ({
         ...n,
         isExpanded: n.id === folderId ? !n.isExpanded : n.isExpanded,
         children: n.children ? update(n.children) : []
-    }));
-
-    const updated = update(folders);
-
-    // Сохраняем открытые
-    const expandedList: string[] = [];
-    collectExpanded(updated, expandedList);
-
-    localStorage.setItem("sidebar_expanded", JSON.stringify(expandedList));
+      }));
 
     setFolders(update(folders));
   };
 
   const handleClickNode = (node: FolderNode) => {
-    // "all" -> null, иначе id
     const id = node.id === 'all' ? null : node.id;
-    setSelectedFolder(id);
-    localStorage.setItem("sidebar_selected", id || "");
     onFolderClick?.(id);
+  };
+
+  const findPath = (nodes: FolderNode[], targetId: string): string[] | null => {
+    for (const n of nodes) {
+      if (n.id === targetId) return [n.id];
+      if (n.children) {
+        const childPath = findPath(n.children, targetId);
+        if (childPath) return [n.id, ...childPath];
+      }
+    }
+    return null;
   };
 
   const handleMouseEnter = (e: React.MouseEvent, text: string) => {
@@ -225,7 +230,7 @@ const Sidebar: React.FC<Props> = ({ onFolderClick, refreshTrigger }) => {
 
         <hr className="border-gray-200 my-4" />
 
-        {isHomePage && (
+        {isFolderView && (
           <div className="flex-1 flex flex-col overflow-hidden">
             <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
               Folders
