@@ -230,3 +230,67 @@ export async function moveFolder(id: string, targetFolderId: string | null) {
     throw e;
   }
 }
+
+export type FileForViewer = {
+  objectUrl: string;
+  fileName: string;
+  contentType?: string;
+};
+
+/**
+ * Загружает файл как blob через axios и возвращает object URL + имя файла.
+ * Caller обязан вызвать URL.revokeObjectURL(objectUrl) при завершении.
+ */
+export async function fetchFileForViewer(fileId: string): Promise<FileForViewer> {
+  const resp = await api.get(`/storage/files/${fileId}/download`, {
+    responseType: "blob",
+    validateStatus: () => true,
+  });
+
+  // --- Ошибка сервера (вернул JSON внутри blob) ---
+  if (resp.status >= 400) {
+    const contentType = resp.headers["content-type"] || resp.headers["Content-Type"];
+    if (contentType?.includes("application/json")) {
+      // прочитаем JSON из blob
+      const text = await (resp.data as Blob).text();
+      let json: any = {};
+      try {
+        json = JSON.parse(text);
+      } catch (e) {
+        // ignore
+      }
+      throw new Error(json.message || `Ошибка открытия файла (${resp.status})`);
+    } else {
+      throw new Error(`Ошибка открытия файла (${resp.status})`);
+    }
+  }
+
+  // создаём object URL ---
+  const blob = resp.data as Blob;
+  const objectUrl = URL.createObjectURL(blob);
+
+  // достаём имя файла из заголовков
+  let filename = "file";
+  const disposition = resp.headers["content-disposition"] || resp.headers["Content-Disposition"];
+  if (disposition) {
+    // 1. filename*=UTF-8''имя.ext
+    const utf8name = disposition.match(/filename\*=\s*UTF-8''(.+?)(;|$)/);
+    if (utf8name) {
+      filename = decodeURIComponent(utf8name[1]);
+    } else {
+      // 2. filename="имя.ext"
+      const quoted = disposition.match(/filename="(.+?)"/);
+      if (quoted) {
+        filename = quoted[1];
+      }
+    }
+  }
+
+  const contentTypeHeader = resp.headers["content-type"] || resp.headers["Content-Type"];
+
+  return {
+    objectUrl,
+    fileName: filename,
+    contentType: contentTypeHeader,
+  };
+}

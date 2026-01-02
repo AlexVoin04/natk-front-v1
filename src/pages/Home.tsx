@@ -15,6 +15,7 @@ import { fetchFolderItems, downloadFile, createFolder, fetchFileInfo, deleteFile
 import { resolveFileIcon } from "../components/FileTable";
 import { type FileItem } from '../services/interfaces';
 import { useParams, useNavigate } from "react-router-dom";
+import FileViewer from '../components/FileViewer';
 
   const mapItems = (items: any[]): FileItem[] =>
     items.map(it => ({
@@ -49,6 +50,7 @@ const Home: React.FC = () => {
   const [folderTreeVersion, setFolderTreeVersion] = useState(0);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [moveItem, setMoveItem] = useState<{ id: string; type: "file" | "folder"; name: string } | null>(null);
+  const [viewFileId, setViewFileId] = useState<string | null>(null);
 
   const { folderId } = useParams();
   const navigate = useNavigate();
@@ -87,7 +89,7 @@ const Home: React.FC = () => {
     if (item.type === 'folder') {
       navigate(`/folder/${item.id}`);
     } else {
-      toast.info(`Opening file: ${item.name}`);
+      handleOpenFileViewer(item.id);
     }
   };
 
@@ -314,6 +316,10 @@ const Home: React.FC = () => {
     setMoveDialogOpen(true);
   };
 
+  const handleOpenFileViewer = (fileId: string) => {
+    setViewFileId(fileId);
+  };
+
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       <Header />
@@ -447,6 +453,13 @@ const Home: React.FC = () => {
         }}
         onConfirm={handleCreateFolderConfirm}
       />
+
+      {viewFileId && (
+        <FileViewer
+          fileId={viewFileId}
+          onClose={() => setViewFileId(null)}
+        />
+      )}
     </div>
   );
 };
