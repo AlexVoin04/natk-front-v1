@@ -111,69 +111,69 @@ const Trash: React.FC = () => {
                 <p className="text-gray-500">Items you delete will appear here</p>
               </div>
             ) : (
-              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-[#EDEDED] border-b border-gray-200">
-                      <tr>
-                        <th className="text-left py-3 px-4 font-medium text-[#3A3A3C] text-sm">Name</th>
-                        <th className="text-left py-3 px-4 font-medium text-[#3A3A3C] text-sm">Original Location</th>
-                        <th className="text-left py-3 px-4 font-medium text-[#3A3A3C] text-sm">Deleted</th>
-                        <th className="text-right py-3 px-4 font-medium text-[#3A3A3C] text-sm">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {trashItems.map(item => (
-                        <tr
-                          key={item.id}
-                          className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
-                            selectedItems.includes(item.id) ? "bg-blue-50" : ""
-                          }`}
-                          onClick={e => handleItemSelect(item.id, e)}
-                        >
-                          <td className="py-3 px-4">
-                            <div className="flex items-center space-x-3">
-                              <div
-                                className={`w-5 h-5 rounded opacity-50 ${
-                                  item.type === "folder" ? "bg-[#4B67F5]" : "bg-gray-400"
-                                }`}
-                              />
-                              <span className="text-[#3A3A3C] font-medium">{item.name}</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-[#3A3A3C] text-sm">{item.path}</td>
-                          <td className="py-3 px-4 text-[#3A3A3C] text-sm">
-                            {format(new Date(item.deletedAt), "MMM dd, yyyy HH:mm")}
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex items-center justify-end space-x-2">
-                              <button
-                                onClick={e => {
-                                  e.stopPropagation();
-                                  handleRestore(item);
-                                }}
-                                className="p-2 text-[#4B67F5] hover:bg-blue-100 rounded-lg transition-colors"
-                                title="Restore"
-                              >
-                                <RotateCcw size={16} />
-                              </button>
-                              <button
-                                onClick={e => {
-                                  e.stopPropagation();
-                                  handlePermanentDelete(item);
-                                }}
-                                className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
-                                title="Delete permanently"
-                              >
-                                <X size={16} />
-                              </button>
-                            </div>
-                          </td>
+              <div className="h-[calc(100vh-12rem)] bg-white rounded-xl border border-gray-200 overflow-x-auto overflow-y-auto">
+                  <div className="min-w-max">
+                    <table className="border-collapse w-full">
+                      <thead className="bg-[#EDEDED] border-b border-gray-200">
+                        <tr>
+                          <th className="text-left py-3 px-4 font-medium text-[#3A3A3C] text-sm whitespace-nowrap">Name</th>
+                          <th className="text-left py-3 px-4 font-medium text-[#3A3A3C] text-sm whitespace-nowrap">Original Location</th>
+                          <th className="text-left py-3 px-4 font-medium text-[#3A3A3C] text-sm whitespace-nowrap">Deleted</th>
+                          <th className="text-right py-3 px-4 font-medium text-[#3A3A3C] text-sm whitespace-nowrap sticky right-0 bg-[#EDEDED] z-20 border-l border-gray-300">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {trashItems.map(item => (
+                          <tr
+                            key={item.id}
+                            className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
+                              selectedItems.includes(item.id) ? "bg-blue-50" : ""
+                            }`}
+                            onClick={e => handleItemSelect(item.id, e)}
+                          >
+                            <td className="py-3 px-4">
+                              <div className="flex items-center space-x-3">
+                                <div
+                                  className={`w-5 h-5 rounded opacity-50 ${
+                                    item.type === "folder" ? "bg-[#4B67F5]" : "bg-gray-400"
+                                  }`}
+                                />
+                                <span className="text-[#3A3A3C] font-medium whitespace-nowrap">{item.name}</span>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 text-[#3A3A3C] text-sm whitespace-nowrap">{item.path}</td>
+                            <td className="py-3 px-4 text-[#3A3A3C] text-sm whitespace-nowrap">
+                              {format(new Date(item.deletedAt), "MMM dd, yyyy HH:mm")}
+                            </td>
+                            <td className="py-3 px-4 sticky right-0 bg-white z-10 border-l border-gray-300 shadow-left">
+                              <div className="flex items-center justify-end space-x-2">
+                                <button
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    handleRestore(item);
+                                  }}
+                                  className="p-2 text-[#4B67F5] hover:bg-blue-100 rounded-lg transition-colors"
+                                  title="Restore"
+                                >
+                                  <RotateCcw size={16} />
+                                </button>
+                                <button
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    handlePermanentDelete(item);
+                                  }}
+                                  className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
+                                  title="Delete permanently"
+                                >
+                                  <X size={16} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>  
               </div>
             )}
           </main>
