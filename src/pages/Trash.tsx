@@ -4,7 +4,7 @@ import Sidebar from '../components/Sidebar';
 import { Trash2, RotateCcw, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
-import { fetchTrashItems, type TrashItemDto, restoreTrashItem } from "../services/trash";
+import { fetchTrashItems, type TrashItemDto, restoreTrashItem, purgeTrashItem,  purgeTrashBatch} from "../services/trash";
 import CopyFileDialog from '../components/CopyFileDialog';
 
 const Trash: React.FC = () => {
@@ -14,6 +14,8 @@ const Trash: React.FC = () => {
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
   const [restoreTarget, setRestoreTarget] = useState<TrashItemDto | null>(null);
   const [folderTreeVersion, setFolderTreeVersion] = useState(0);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<TrashItemDto | null>(null);
 
   useEffect(() => {
     loadTrash();
@@ -52,20 +54,38 @@ const Trash: React.FC = () => {
     }
   };
 
-  const handlePermanentDelete = async (item: TrashItemDto) => {
-    // TODO: реализовать удаление через API
-    // const item = trashItems.find(i => i.id === itemId);
-    // if (item) {
-    //   setTrashItems(prev => prev.filter(i => i.id !== itemId));
-    //   toast.success(`"${item.name}" permanently deleted`);
-    // }
+  const confirmPermanentDelete = async () => {
+    if (!deleteTarget) return;
+
+    try {
+      await purgeTrashItem(deleteTarget);
+
+      setTrashItems(prev => prev.filter(i => i.id !== deleteTarget.id));
+      setSelectedItems(prev => prev.filter(id => id !== deleteTarget.id));
+
+      toast.success(`"${deleteTarget.name}" удалён навсегда`);
+    } catch (e) {
+      toast.error("Не удалось удалить элемент");
+    } finally {
+      setDeleteDialogOpen(false);
+      setDeleteTarget(null);
+    }
   };
 
   const handleEmptyTrash = async () => {
-    for (const item of trashItems) {
-      await handlePermanentDelete(item);
+    if (trashItems.length === 0) return;
+
+    try {
+      await purgeTrashBatch(trashItems);
+
+      setTrashItems([]);
+      setSelectedItems([]);
+
+      toast.success("Корзина очищена");
+    } catch (e) {
+      console.error(e);
+      toast.error("Ошибка при очистке корзины");
     }
-    toast.success("Trash emptied successfully");
   };
 
   const handleItemSelect = (itemId: string, e: React.MouseEvent) => {
@@ -160,7 +180,8 @@ const Trash: React.FC = () => {
                                 <button
                                   onClick={e => {
                                     e.stopPropagation();
-                                    handlePermanentDelete(item);
+                                    setDeleteTarget(item);
+                                    setDeleteDialogOpen(true);
                                   }}
                                   className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
                                   title="Delete permanently"
@@ -178,6 +199,39 @@ const Trash: React.FC = () => {
             )}
           </main>
         </div>
+
+        {deleteDialogOpen && deleteTarget && (
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+            <div className="bg-white rounded-xl w-[420px] p-6 shadow-xl">
+              <h2 className="text-lg font-semibold text-[#3A3A3C] mb-3">
+                Удалить навсегда?
+              </h2>
+
+              <p className="text-gray-600 mb-6">
+                <span className="font-medium">"{deleteTarget.name}"</span> будет удалён без возможности восстановления.
+              </p>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setDeleteDialogOpen(false);
+                    setDeleteTarget(null);
+                  }}
+                  className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={confirmPermanentDelete}
+                  className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <CopyFileDialog
           isOpen={restoreDialogOpen}
