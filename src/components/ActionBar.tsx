@@ -47,7 +47,19 @@ const ActionBar: React.FC<ActionBarProps> = (props) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && totalSelected > 0) {
+        onClearSelection?.();
+      }
+    };
+
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [totalSelected, onClearSelection]);
+
   return (
+    
     <div className="flex items-center justify-between mb-6 bg-white rounded-xl border border-gray-200 px-4 py-3">
       <div className="flex items-center gap-3 min-w-0">
         {totalSelected > 0 ? (
@@ -95,14 +107,21 @@ const ActionBar: React.FC<ActionBarProps> = (props) => {
       <div className="flex items-center gap-3">
 
         {totalSelected > 0 ? (
-          <button
-            onClick={onDeleteSelected}
-            className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-xl
-             shadow-sm hover:bg-red-700 hover:shadow transition"
-          >
-            <Trash2 size={16} />
-            <span>Delete</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button className="px-3 py-2 text-sm rounded-xl border border-gray-300 text-[#3A3A3C] hover:bg-gray-100 transition">
+              Move
+            </button>
+            <button className="px-3 py-2 text-sm rounded-xl border border-gray-300 text-[#3A3A3C] hover:bg-gray-100 transition">
+              Download
+            </button>
+            <button
+              onClick={onDeleteSelected}
+              className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-xl shadow-sm hover:bg-red-700 hover:shadow transition"
+            >
+              <Trash2 size={16} />
+              <span>Delete</span>
+            </button>
+          </div>
         ) : (
           <>
             <div className="relative">
