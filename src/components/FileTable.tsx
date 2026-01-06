@@ -20,6 +20,7 @@ import { format } from 'date-fns';
 import ContextMenu from "./ContextMenu";
 import { type FileItem } from '../services/interfaces';
 import TooltipFileNamePortal from './TooltipFileNamePortal';
+import { CircleCheckbox } from "./CircleCheckbox";
 
 const fileTypeMap: Record<string, React.JSX.Element> = {
   image: <Image size={48} className="text-green-500" />,
@@ -220,11 +221,27 @@ const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onCreateFolder, 
                 setTooltipTarget(null);
                 setTooltipText(null);
               }}
-              onClick={(e) => handleItemClick(item.id, e)}
+              // onClick={(e) => handleItemClick(item.id, e)}
               onDoubleClick={() => onItemDoubleClick(item)}
               onContextMenu={(e) => handleContextMenu(e, item.id)}
             >
-              <div className="flex flex-col items-center text-center">
+              <div className="absolute top-2 left-2">
+                <CircleCheckbox
+                  checked={selectedItems.includes(item.id)}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    const next = e.target.checked
+                      ? [...selectedItems, item.id]
+                      : selectedItems.filter(id => id !== item.id);
+                    setSelectedItems(next);
+                  }}
+                  className={`transition-opacity ${
+                    selectedItems.includes(item.id) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                  }`}
+                />
+              </div>
+
+              <div className="flex flex-col items-center text-center mt-2">
                 <div className="mb-3">
                   {resolveFileIcon(item)}
                 </div>
@@ -292,6 +309,15 @@ const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onCreateFolder, 
         <table className="w-full">
           <thead className="bg-[#EDEDED] border-b border-gray-200">
             <tr>
+              <th className="text-left py-3 px-4 font-medium text-[#3A3A3C] text-sm w-6">
+                <CircleCheckbox
+                  checked={selectedItems.length === items.length && items.length > 0}
+                  onChange={(e) => {
+                    if (e.target.checked) setSelectedItems(items.map(i => i.id));
+                    else setSelectedItems([]);
+                  }}
+                />
+              </th>
               <th className="text-left py-3 px-4 font-medium text-[#3A3A3C] text-sm">Name</th>
               <th className="text-left py-3 px-4 font-medium text-[#3A3A3C] text-sm">Type</th>
               <th className="text-left py-3 px-4 font-medium text-[#3A3A3C] text-sm">Size</th>
@@ -307,10 +333,21 @@ const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onCreateFolder, 
                 className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
                   selectedItems.includes(item.id) ? 'bg-blue-50' : ''
                 }`}
-                onClick={(e) => handleItemClick(item.id, e)}
                 onDoubleClick={() => onItemDoubleClick(item)}
                 onContextMenu={(e) => handleContextMenu(e, item.id)}
                 >
+                <td className="py-3 px-4">
+                  <CircleCheckbox
+                    checked={selectedItems.includes(item.id)}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      const next = e.target.checked
+                        ? [...selectedItems, item.id]
+                        : selectedItems.filter(id => id !== item.id);
+                      setSelectedItems(next);
+                    }}
+                  />
+                </td>
                 <td className="py-3 px-4">
                   <div className="flex items-center space-x-3">
                     {resolveFileIcon(item)}
