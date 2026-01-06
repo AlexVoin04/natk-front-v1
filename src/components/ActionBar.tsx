@@ -60,10 +60,10 @@ const ActionBar: React.FC<ActionBarProps> = (props) => {
 
   return (
     
-    <div className="flex items-center justify-between mb-6 bg-white rounded-xl border border-gray-200 px-4 py-3">
-      <div className="flex items-center gap-3 min-w-0">
+    <div className="flex items-center justify-between mb-6 h-20 bg-white rounded-xl border border-gray-200 px-4 py-3">
+      <div className="flex items-center gap-3 min-w-0 h-full">
         {totalSelected > 0 ? (
-          <div className="flex items-center gap-4 bg-blue-50 border border-blue-100 px-4 py-2 rounded-xl">
+          <div className="flex items-center gap-4 bg-blue-50 border border-blue-100 px-4 h-14 rounded-xl">
             
             <button
               onClick={onClearSelection}
@@ -73,7 +73,7 @@ const ActionBar: React.FC<ActionBarProps> = (props) => {
               ✕
             </button>
 
-            <div className="flex flex-col leading-tight">
+            <div className="flex flex-col leading-tight justify-center h-full">
               <div className="text-sm font-semibold text-blue-900">
                 {totalSelected} selected
               </div>
@@ -104,10 +104,10 @@ const ActionBar: React.FC<ActionBarProps> = (props) => {
         )}
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 h-full">
 
         {totalSelected > 0 ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 h-full">
             <button className="px-3 py-2 text-sm rounded-xl border border-gray-300 text-[#3A3A3C] hover:bg-gray-100 transition">
               Move
             </button>

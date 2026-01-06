@@ -148,30 +148,34 @@ const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onCreateFolder, 
   };
 
   const safeFormatDate = (dateString?: string | null) => {
-  if (!dateString) return "—";
-  const d = new Date(dateString);
-  if (isNaN(d.getTime())) return "—";
-  return format(d, "dd.MM.yyyy HH:mm");
-};
-
-  const handleContextMenu = (e: React.MouseEvent, itemId: string) => {
-    e.preventDefault();
-    if (!selectedItems.includes(itemId)) {
-      setSelectedItems([itemId]);
-    }
-    setContextMenu({ x: e.clientX, y: e.clientY, itemId });
+    if (!dateString) return "—";
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return "—";
+    return format(d, "dd.MM.yyyy HH:mm");
   };
 
-  const handleItemClick = (itemId: string, e: React.MouseEvent) => {
-    if (e.ctrlKey || e.metaKey) {
-      const next = selectedItems.includes(itemId)
-        ? selectedItems.filter(id => id !== itemId)
-        : [...selectedItems, itemId];
+  const openContextMenu = (x: number, y: number, itemId: string) => {
+    setContextMenu({ x, y, itemId });
+  };
 
-      setSelectedItems(next);
-    } else {
-      setSelectedItems([itemId]);
-    }
+  const handleContextMenuOnItem = (e: React.MouseEvent, itemId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // ПКМ по элементу — делаем его активным
+    // if (!selectedItems.includes(itemId)) {
+    //   setSelectedItems([itemId]);
+    // }
+
+    openContextMenu(e.clientX, e.clientY, itemId);
+  };
+
+  const handleContextMenuButton = (e: React.MouseEvent, itemId: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    // НЕ трогаем selectedItems
+    openContextMenu(e.clientX, e.clientY, itemId);
   };
 
   React.useEffect(() => {
@@ -180,28 +184,6 @@ const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onCreateFolder, 
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
-  const getContextMenuPosition = () => {
-    if (!contextMenu) return { left: 0, top: 0 };
-    
-    const menuWidth = 192; // min-w-48
-    const menuHeight = 200; // approximate height
-    let left = contextMenu.x;
-    let top = contextMenu.y;
-    
-    if (left + menuWidth > window.innerWidth) {
-      left = window.innerWidth - menuWidth - 10;
-    }
-    if (top + menuHeight > window.innerHeight) {
-      top = window.innerHeight - menuHeight - 10;
-    }
-    
-    // Ensure not negative
-    left = Math.max(10, left);
-    top = Math.max(10, top);
-    
-    return { left, top };
-  };
-
   if (viewMode === 'grid') {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-6 overflow-auto max-h-full">
@@ -209,7 +191,7 @@ const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onCreateFolder, 
           {items.map((item) => (
             <div
               key={item.id}
-              className={`group relative bg-gray-50 rounded-xl p-4 hover:bg-gray-100 cursor-pointer transition-colors border-2 ${
+              className={`group relative select-none bg-gray-50 rounded-xl p-4 hover:bg-gray-100 cursor-pointer transition-colors border-2 ${
                 selectedItems.includes(item.id) ? 'border-[#4B67F5] bg-blue-50' : 'border-transparent'
               }`}
               onMouseEnter={(e) => {
@@ -221,9 +203,8 @@ const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onCreateFolder, 
                 setTooltipTarget(null);
                 setTooltipText(null);
               }}
-              // onClick={(e) => handleItemClick(item.id, e)}
               onDoubleClick={() => onItemDoubleClick(item)}
-              onContextMenu={(e) => handleContextMenu(e, item.id)}
+              onContextMenu={(e) => handleContextMenuOnItem(e, item.id)}
             >
               <div className="absolute top-2 left-2">
                 <CircleCheckbox
@@ -272,7 +253,7 @@ const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onCreateFolder, 
                 
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleContextMenu(e, item.id);
+                  handleContextMenuButton(e, item.id);
                 }}
               >
                 <MoreVertical size={16} className="text-[#3A3A3C]" />
@@ -330,11 +311,11 @@ const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onCreateFolder, 
             {items.map((item) => (
               <tr
                 key={item.id}
-                className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
+                className={`select-none border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
                   selectedItems.includes(item.id) ? 'bg-blue-50' : ''
                 }`}
                 onDoubleClick={() => onItemDoubleClick(item)}
-                onContextMenu={(e) => handleContextMenu(e, item.id)}
+                onContextMenu={(e) => handleContextMenuOnItem(e, item.id)}
                 >
                 <td className="py-3 px-4">
                   <CircleCheckbox
@@ -384,7 +365,7 @@ const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onCreateFolder, 
                     className="p-1 hover:bg-gray-200 rounded-lg transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleContextMenu(e, item.id);
+                      handleContextMenuButton(e, item.id);
                     }}
                   >
                     <MoreVertical size={16} className="text-[#3A3A3C]" />
