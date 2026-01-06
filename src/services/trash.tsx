@@ -1,5 +1,6 @@
 import api from "./api";
 import type { AxiosResponse } from "axios";
+import type { PurgeItemDto } from "./interfaces";
 
 export interface TrashItemDto {
   id: string;
@@ -28,4 +29,30 @@ export async function restoreTrashItem(
       params: { targetFolderId: targetFolderId ?? undefined }
     });
   }
+}
+
+export async function purgeTrashItem(item: TrashItemDto): Promise<void> {
+  if (item.type === "folder") {
+    await api.delete(`/storage/bin/folders/${item.id}/purge`);
+  } else {
+    await api.delete(`/storage/bin/files/${item.id}/purge`);
+  }
+}
+
+export function toPurgeItem(item: TrashItemDto): PurgeItemDto {
+  return {
+    id: item.id,
+    type: item.type === "folder" ? "FOLDER" : "FILE"
+  };
+}
+
+/** Батч purge (работает и для одного элемента) */
+export async function purgeTrashBatch(items: TrashItemDto[]): Promise<void> {
+  if (items.length === 0) return;
+
+  const body = items.map(toPurgeItem);
+
+  await api.delete("/storage/bin/purge", {
+    data: body
+  });
 }

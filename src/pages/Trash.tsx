@@ -4,7 +4,7 @@ import Sidebar from '../components/Sidebar';
 import { Trash2, RotateCcw, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
-import { fetchTrashItems, type TrashItemDto, restoreTrashItem } from "../services/trash";
+import { fetchTrashItems, type TrashItemDto, restoreTrashItem, purgeTrashItem,  purgeTrashBatch} from "../services/trash";
 import CopyFileDialog from '../components/CopyFileDialog';
 
 const Trash: React.FC = () => {
@@ -14,6 +14,8 @@ const Trash: React.FC = () => {
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
   const [restoreTarget, setRestoreTarget] = useState<TrashItemDto | null>(null);
   const [folderTreeVersion, setFolderTreeVersion] = useState(0);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<TrashItemDto | null>(null);
 
   useEffect(() => {
     loadTrash();
@@ -52,20 +54,38 @@ const Trash: React.FC = () => {
     }
   };
 
-  const handlePermanentDelete = async (item: TrashItemDto) => {
-    // TODO: реализовать удаление через API
-    // const item = trashItems.find(i => i.id === itemId);
-    // if (item) {
-    //   setTrashItems(prev => prev.filter(i => i.id !== itemId));
-    //   toast.success(`"${item.name}" permanently deleted`);
-    // }
+  const confirmPermanentDelete = async () => {
+    if (!deleteTarget) return;
+
+    try {
+      await purgeTrashItem(deleteTarget);
+
+      setTrashItems(prev => prev.filter(i => i.id !== deleteTarget.id));
+      setSelectedItems(prev => prev.filter(id => id !== deleteTarget.id));
+
+      toast.success(`"${deleteTarget.name}" удалён навсегда`);
+    } catch (e) {
+      toast.error("Не удалось удалить элемент");
+    } finally {
+      setDeleteDialogOpen(false);
+      setDeleteTarget(null);
+    }
   };
 
   const handleEmptyTrash = async () => {
-    for (const item of trashItems) {
-      await handlePermanentDelete(item);
+    if (trashItems.length === 0) return;
+
+    try {
+      await purgeTrashBatch(trashItems);
+
+      setTrashItems([]);
+      setSelectedItems([]);
+
+      toast.success("Корзина очищена");
+    } catch (e) {
+      console.error(e);
+      toast.error("Ошибка при очистке корзины");
     }
-    toast.success("Trash emptied successfully");
   };
 
   const handleItemSelect = (itemId: string, e: React.MouseEvent) => {
@@ -111,73 +131,107 @@ const Trash: React.FC = () => {
                 <p className="text-gray-500">Items you delete will appear here</p>
               </div>
             ) : (
-              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-[#EDEDED] border-b border-gray-200">
-                      <tr>
-                        <th className="text-left py-3 px-4 font-medium text-[#3A3A3C] text-sm">Name</th>
-                        <th className="text-left py-3 px-4 font-medium text-[#3A3A3C] text-sm">Original Location</th>
-                        <th className="text-left py-3 px-4 font-medium text-[#3A3A3C] text-sm">Deleted</th>
-                        <th className="text-right py-3 px-4 font-medium text-[#3A3A3C] text-sm">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {trashItems.map(item => (
-                        <tr
-                          key={item.id}
-                          className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
-                            selectedItems.includes(item.id) ? "bg-blue-50" : ""
-                          }`}
-                          onClick={e => handleItemSelect(item.id, e)}
-                        >
-                          <td className="py-3 px-4">
-                            <div className="flex items-center space-x-3">
-                              <div
-                                className={`w-5 h-5 rounded opacity-50 ${
-                                  item.type === "folder" ? "bg-[#4B67F5]" : "bg-gray-400"
-                                }`}
-                              />
-                              <span className="text-[#3A3A3C] font-medium">{item.name}</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-[#3A3A3C] text-sm">{item.path}</td>
-                          <td className="py-3 px-4 text-[#3A3A3C] text-sm">
-                            {format(new Date(item.deletedAt), "MMM dd, yyyy HH:mm")}
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex items-center justify-end space-x-2">
-                              <button
-                                onClick={e => {
-                                  e.stopPropagation();
-                                  handleRestore(item);
-                                }}
-                                className="p-2 text-[#4B67F5] hover:bg-blue-100 rounded-lg transition-colors"
-                                title="Restore"
-                              >
-                                <RotateCcw size={16} />
-                              </button>
-                              <button
-                                onClick={e => {
-                                  e.stopPropagation();
-                                  handlePermanentDelete(item);
-                                }}
-                                className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
-                                title="Delete permanently"
-                              >
-                                <X size={16} />
-                              </button>
-                            </div>
-                          </td>
+              <div className="h-[calc(100vh-12rem)] bg-white rounded-xl border border-gray-200 overflow-x-auto overflow-y-auto">
+                  <div className="min-w-max">
+                    <table className="border-collapse w-full">
+                      <thead className="bg-[#EDEDED] border-b border-gray-200">
+                        <tr>
+                          <th className="text-left py-3 px-4 font-medium text-[#3A3A3C] text-sm whitespace-nowrap">Name</th>
+                          <th className="text-left py-3 px-4 font-medium text-[#3A3A3C] text-sm whitespace-nowrap">Original Location</th>
+                          <th className="text-left py-3 px-4 font-medium text-[#3A3A3C] text-sm whitespace-nowrap">Deleted</th>
+                          <th className="text-right py-3 px-4 font-medium text-[#3A3A3C] text-sm whitespace-nowrap sticky right-0 bg-[#EDEDED] z-20 border-l border-gray-300">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {trashItems.map(item => (
+                          <tr
+                            key={item.id}
+                            className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
+                              selectedItems.includes(item.id) ? "bg-blue-50" : ""
+                            }`}
+                            onClick={e => handleItemSelect(item.id, e)}
+                          >
+                            <td className="py-3 px-4">
+                              <div className="flex items-center space-x-3">
+                                <div
+                                  className={`w-5 h-5 rounded opacity-50 ${
+                                    item.type === "folder" ? "bg-[#4B67F5]" : "bg-gray-400"
+                                  }`}
+                                />
+                                <span className="text-[#3A3A3C] font-medium whitespace-nowrap">{item.name}</span>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 text-[#3A3A3C] text-sm whitespace-nowrap">{item.path}</td>
+                            <td className="py-3 px-4 text-[#3A3A3C] text-sm whitespace-nowrap">
+                              {format(new Date(item.deletedAt), "MMM dd, yyyy HH:mm")}
+                            </td>
+                            <td className="py-3 px-4 sticky right-0 bg-white z-10 border-l border-gray-300 shadow-left">
+                              <div className="flex items-center justify-end space-x-2">
+                                <button
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    handleRestore(item);
+                                  }}
+                                  className="p-2 text-[#4B67F5] hover:bg-blue-100 rounded-lg transition-colors"
+                                  title="Restore"
+                                >
+                                  <RotateCcw size={16} />
+                                </button>
+                                <button
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    setDeleteTarget(item);
+                                    setDeleteDialogOpen(true);
+                                  }}
+                                  className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
+                                  title="Delete permanently"
+                                >
+                                  <X size={16} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>  
               </div>
             )}
           </main>
         </div>
+
+        {deleteDialogOpen && deleteTarget && (
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+            <div className="bg-white rounded-xl w-[420px] p-6 shadow-xl">
+              <h2 className="text-lg font-semibold text-[#3A3A3C] mb-3">
+                Удалить навсегда?
+              </h2>
+
+              <p className="text-gray-600 mb-6">
+                <span className="font-medium">"{deleteTarget.name}"</span> будет удалён без возможности восстановления.
+              </p>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setDeleteDialogOpen(false);
+                    setDeleteTarget(null);
+                  }}
+                  className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={confirmPermanentDelete}
+                  className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <CopyFileDialog
           isOpen={restoreDialogOpen}

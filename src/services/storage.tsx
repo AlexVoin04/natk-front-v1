@@ -2,6 +2,8 @@ import api from "./api";
 import type { FolderTreeDto } from "./interfaces";
 import { toast } from "react-toastify";
 import type { AxiosRequestConfig } from 'axios';
+import { type FileItem } from '../services/interfaces';
+import type { PurgeItemDto, BulkDeleteResult } from "./interfaces";
 
 export async function fetchFolderTree(): Promise<FolderTreeDto[]> {
   const resp = await api.get<FolderTreeDto[]>("/storage/folders/tree");
@@ -11,18 +13,9 @@ export async function fetchFolderTree(): Promise<FolderTreeDto[]> {
 export type FolderContentResponseDto = {
   folderId: string | null;
   path: string;
-  items: Array<{
-    id: string;
-    name: string;
-    type: string; // "folder" or mime-type
-    createdAt: string;
-    updatedAt: string | null;
-  }>;
-  /**
-   * надо фиксить бэкенд для крошек:
-   * pathIds: string[]; // ['all', 'id1', 'id2']
-   * pathNames: string[]; // ['Все файлы', 'Папка1', 'Папка2']
-   */
+  pathIds: string[];
+  pathNames: string[];
+  items: Array<FileItem>;
 };
 
 /**
@@ -234,6 +227,86 @@ export async function moveFolder(id: string, targetFolderId: string | null) {
     return resp.data;
   } catch (e: any) {
     const msg = e?.response?.data?.error || "Ошибка при перемещении папки";
+    toast.error(msg);
+    throw e;
+  }
+}
+
+export type FileForViewer = {
+  objectUrl: string;
+  fileName: string;
+  contentType?: string;
+};
+
+/**
+ * Загружает файл как blob через axios и возвращает object URL + имя файла.
+ * Caller обязан вызвать URL.revokeObjectURL(objectUrl) при завершении.
+ */
+export async function fetchFileForViewer(fileId: string): Promise<FileForViewer> {
+  const resp = await api.get(`/storage/files/${fileId}/download`, {
+    responseType: "blob",
+    validateStatus: () => true,
+  });
+
+  // --- Ошибка сервера (вернул JSON внутри blob) ---
+  if (resp.status >= 400) {
+    const contentType = resp.headers["content-type"] || resp.headers["Content-Type"];
+    if (contentType?.includes("application/json")) {
+      // прочитаем JSON из blob
+      const text = await (resp.data as Blob).text();
+      let json: any = {};
+      try {
+        json = JSON.parse(text);
+      } catch (e) {
+        // ignore
+      }
+      throw new Error(json.message || `Ошибка открытия файла (${resp.status})`);
+    } else {
+      throw new Error(`Ошибка открытия файла (${resp.status})`);
+    }
+  }
+
+  // создаём object URL ---
+  const blob = resp.data as Blob;
+  const objectUrl = URL.createObjectURL(blob);
+
+  // достаём имя файла из заголовков
+  let filename = "file";
+  const disposition = resp.headers["content-disposition"] || resp.headers["Content-Disposition"];
+  if (disposition) {
+    // 1. filename*=UTF-8''имя.ext
+    const utf8name = disposition.match(/filename\*=\s*UTF-8''(.+?)(;|$)/);
+    if (utf8name) {
+      filename = decodeURIComponent(utf8name[1]);
+    } else {
+      // 2. filename="имя.ext"
+      const quoted = disposition.match(/filename="(.+?)"/);
+      if (quoted) {
+        filename = quoted[1];
+      }
+    }
+  }
+
+  const contentTypeHeader = resp.headers["content-type"] || resp.headers["Content-Type"];
+
+  return {
+    objectUrl,
+    fileName: filename,
+    contentType: contentTypeHeader,
+  };
+}
+
+export async function bulkDelete(items: PurgeItemDto[]): Promise<BulkDeleteResult> {
+  if (!items || items.length === 0) {
+    return { success: [], failed: {} };
+  }
+
+  try {
+    const resp = await api.delete<BulkDeleteResult>("/storage/items", { data: items });
+    return resp.data;
+  } catch (e: any) {
+    // показываем ошибку и пробрасываем
+    const msg = e?.response?.data?.message || "Ошибка пакетного удаления";
     toast.error(msg);
     throw e;
   }

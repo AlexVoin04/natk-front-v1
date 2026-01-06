@@ -28,6 +28,11 @@ const App: React.FC = () => {
                   <Home />
                 </ProtectedRoute>
               } />
+              <Route path="/folder/:folderId" element={
+                <ProtectedRoute>
+                  <Home />
+                </ProtectedRoute>
+              } />
               <Route path="/trash" element={
                 <ProtectedRoute>
                   <Trash />

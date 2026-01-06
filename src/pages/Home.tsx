@@ -11,18 +11,12 @@ import CopyFileDialog from '../components/CopyFileDialog';
 import FilePropertiesDialog from '../components/FilePropertiesDialog';
 import Footer from '../components/Footer';
 import { toast } from 'react-toastify';
-import { fetchFolderItems, downloadFile, createFolder, fetchFileInfo, deleteFile, deleteFolder, renameFile, renameFolder, copyFile, moveFile, moveFolder } from '../services/storage';
+import { fetchFolderItems, downloadFile, createFolder, fetchFileInfo, deleteFile, deleteFolder, renameFile, renameFolder, copyFile, moveFile, moveFolder, bulkDelete } from '../services/storage';
 import { resolveFileIcon } from "../components/FileTable";
-
-interface FileItem {
-  id: string;
-  name: string;
-  type: 'folder' | 'file';
-  fileType?: string;
-  size?: number;
-  createdAt: string | null;
-  updatedAt: string | null;
-}
+import { type FileItem } from '../services/interfaces';
+import { useParams, useNavigate } from "react-router-dom";
+import FileViewer from '../components/FileViewer';
+import type { PurgeItemDto, BulkDeleteResult } from '../services/interfaces'
 
   const mapItems = (items: any[]): FileItem[] =>
     items.map(it => ({
@@ -31,33 +25,69 @@ interface FileItem {
       type: it.type === 'folder' ? 'folder' : 'file',
       fileType: it.type === 'folder' ? undefined : it.type,
       size: it.size,
+      antivirusStatus: it.fileAntivirusStatus,
       createdAt: it.createdAt,
       updatedAt: it.updatedAt
     }));
 
+const STORAGE_VIEW_MODE = "storage.viewMode";
+const STORAGE_SORT = "storage.sort";
+
 const Home: React.FC = () => {
   const [files, setFiles] = useState<FileItem[]>([]);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [breadcrumbItems, setBreadcrumbItems] = useState<{ name: string; id: string | null }[]>([]);
   const [currentPath, setCurrentPath] = useState<string>('Все файлы');
   const [loading, setLoading] = useState(false);
-  const [sortField, setSortField] = useState<'name' | 'createdAt'>('name');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+    return (localStorage.getItem(STORAGE_VIEW_MODE) as 'grid' | 'list') || 'list';
+  });
+
+  const [sortField, setSortField] = useState<'name' | 'createdAt'>(() => {
+    const raw = localStorage.getItem(STORAGE_SORT);
+    return raw ? JSON.parse(raw).field : 'name';
+  });
+
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(() => {
+    const raw = localStorage.getItem(STORAGE_SORT);
+    return raw ? JSON.parse(raw).dir : 'asc';
+  });
+
   const [isPropertiesOpen, setIsPropertiesOpen] = useState(false);
   const [selectedFileInfo, setSelectedFileInfo] = useState<any | null>(null);
   const [renameTarget, setRenameTarget] = useState<{ id: string; type: "file" | "folder"; name: string } | null>(null);
   const [renameSuggested, setRenameSuggested] = useState<string | null>(null);
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
   const [copyFileId, setCopyFileId] = useState<string | null>(null);
-  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [createFolderParent, setCreateFolderParent] = useState<string | null>(null);  // null = root ("Все файлы")
   const [createFolderParentName, setCreateFolderParentName] = useState("Все файлы");
   const [folderTreeVersion, setFolderTreeVersion] = useState(0);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
-  const [moveTargetId, setMoveTargetId] = useState<string | null>(null);
   const [moveItem, setMoveItem] = useState<{ id: string; type: "file" | "folder"; name: string } | null>(null);
+  const [viewFileId, setViewFileId] = useState<string | null>(null);
+
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  const selectedFilesCount = selectedIds.filter(id => files.find(f => f.id === id)?.type === 'file').length;
+  const selectedFoldersCount = selectedIds.filter(id => files.find(f => f.id === id)?.type === 'folder').length;
+
+  const { folderId } = useParams();
+  const navigate = useNavigate();
+
+  const currentFolderId = folderId ?? null;
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_VIEW_MODE, viewMode);
+  }, [viewMode]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      STORAGE_SORT,
+      JSON.stringify({ field: sortField, dir: sortDirection })
+    );
+  }, [sortField, sortDirection]);
 
   // При смене папки — загружаем её содержимое
   useEffect(() => {
@@ -70,24 +100,12 @@ const Home: React.FC = () => {
         const mapped = mapItems(resp.items);
         setFiles(mapped);
 
-        const parts = (resp.path || 'Все файлы').split('/').filter(Boolean);
-        const crumbs = parts.map((name, idx) => {
-          let id: string | null = null;
-
-          if (idx === parts.length - 1) {
-            // Последняя — текущая папка
-            id = currentFolderId;
-          } else {
-            // ищем id среди текущего уровня файлов
-            const parentFiles = idx === 0 ? mapped : [];
-            const match = parentFiles.find(f => f.name === name && f.type === 'folder');
-            if (match) id = match.id;
-          }
-
-          return { name, id };
-        });
-
-        setBreadcrumbItems(crumbs);
+        setBreadcrumbItems(
+        resp.pathIds.map((id, index) => ({
+          name: resp.pathNames[index],
+          id: id 
+        }))
+      );
       } catch (e) {
         console.error("Failed to load folder items", e);
         toast.error("Failed to load folder contents");
@@ -96,14 +114,15 @@ const Home: React.FC = () => {
       }
     };
 
+    setSelectedIds([]);//сброс выбранных элементов
     load();
   }, [currentFolderId]);
 
   const handleItemDoubleClick = (item: FileItem) => {
     if (item.type === 'folder') {
-      setCurrentFolderId(item.id);
+      navigate(`/folder/${item.id}`);
     } else {
-      toast.info(`Opening file: ${item.name}`);
+      handleOpenFileViewer(item.id);
     }
   };
 
@@ -157,15 +176,6 @@ const Home: React.FC = () => {
       // Обновляем путь
       setCurrentPath(resp.path || 'Все файлы');
 
-      // Обновляем хлебные крошки
-      const parts = (resp.path || 'Все файлы').split('/').filter(Boolean);
-      setBreadcrumbItems(
-        parts.map((name, idx) => ({
-          name,
-          id: idx === parts.length - 1 ? currentFolderId : null
-        }))
-      );
-
       setIsCreateFolderOpen(false);
 
     } catch (e: any) {
@@ -195,7 +205,11 @@ const Home: React.FC = () => {
 
     // прокидываем в сайдбар — при клике на папку будет устанавливаться currentFolderId
   const handleFolderClick = (folderId: string | null) => {
-    setCurrentFolderId(folderId);
+    if (folderId === null) {
+      navigate("/");
+    } else {
+      navigate(`/folder/${folderId}`);
+    }
   };
 
   const sortItems = (items: FileItem[]) => {
@@ -335,6 +349,42 @@ const Home: React.FC = () => {
     setMoveDialogOpen(true);
   };
 
+  const handleOpenFileViewer = (fileId: string) => {
+    setViewFileId(fileId);
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.length === 0) return;
+
+    const items: PurgeItemDto[] = selectedIds.map(id => {
+      const it = files.find(f => f.id === id);
+      return {
+        id,
+        type: it?.type === 'folder' ? 'FOLDER' : 'FILE'
+      };
+    });
+
+    try {
+      const result: BulkDeleteResult = await bulkDelete(items);
+
+      if (result.failed && Object.keys(result.failed).length > 0) {
+        const failCount = Object.keys(result.failed).length;
+        const successCount = result.success?.length ?? 0;
+        toast.warn(`Удалено: ${successCount}. Не удалено: ${failCount}.`);
+      } else {
+        toast.success(`Удалено: ${result.success?.length ?? selectedIds.length}`);
+      }
+
+      const updated = await fetchFolderItems(currentFolderId);
+      setFiles(mapItems(updated.items));
+
+      setSelectedIds([]);
+    } catch (e) {
+      toast.error("Ошибка при пакетном удалении");
+      console.error(e);
+    }
+  };
+
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       <Header />
@@ -348,7 +398,10 @@ const Home: React.FC = () => {
         <main className="flex-1 p-6 flex flex-col overflow-hidden">
           <Breadcrumbs
             items={breadcrumbItems}
-            onClick={(id) => setCurrentFolderId(id)}
+            onClick={(id) => {
+              if (id === null) navigate("/");
+              else navigate(`/folder/${id}`);
+            }}
           />
           
           <ActionBar
@@ -373,6 +426,10 @@ const Home: React.FC = () => {
               setSortField(field);
               setSortDirection(dir);
             }}
+            selectedFilesCount={selectedFilesCount}
+            selectedFoldersCount={selectedFoldersCount}
+            onDeleteSelected={handleDeleteSelected}
+            onClearSelection={() => setSelectedIds([])}
           />
 
           <div className="flex flex-col flex-1 mt-4 overflow-hidden">
@@ -398,6 +455,17 @@ const Home: React.FC = () => {
                 }}
                 sortField={sortField}
                 sortDirection={sortDirection}
+                onCreateFolder={() => {
+                  const currentName = currentFolderId === null
+                    ? "Все файлы"
+                    : (currentPath ? currentPath.split("/").filter(Boolean).pop() : "Папка") || "Папка";
+                  setCreateFolderParent(currentFolderId);
+                  setCreateFolderParentName(currentName);
+                  setIsCreateFolderOpen(true);
+                }}
+                onUploadFile={() => setIsUploadOpen(true)}
+                selectedIds={selectedIds}
+                onSelectionChange={(ids) => setSelectedIds(ids)}
               />
             )}
           </div>
@@ -456,6 +524,13 @@ const Home: React.FC = () => {
         }}
         onConfirm={handleCreateFolderConfirm}
       />
+
+      {viewFileId && (
+        <FileViewer
+          fileId={viewFileId}
+          onClose={() => setViewFileId(null)}
+        />
+      )}
     </div>
   );
 };
