@@ -30,16 +30,31 @@ import type { PurgeItemDto, BulkDeleteResult } from '../services/interfaces'
       updatedAt: it.updatedAt
     }));
 
+const STORAGE_VIEW_MODE = "storage.viewMode";
+const STORAGE_SORT = "storage.sort";
+
 const Home: React.FC = () => {
   const [files, setFiles] = useState<FileItem[]>([]);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [breadcrumbItems, setBreadcrumbItems] = useState<{ name: string; id: string | null }[]>([]);
   const [currentPath, setCurrentPath] = useState<string>('Все файлы');
   const [loading, setLoading] = useState(false);
-  const [sortField, setSortField] = useState<'name' | 'createdAt'>('name');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+    return (localStorage.getItem(STORAGE_VIEW_MODE) as 'grid' | 'list') || 'list';
+  });
+
+  const [sortField, setSortField] = useState<'name' | 'createdAt'>(() => {
+    const raw = localStorage.getItem(STORAGE_SORT);
+    return raw ? JSON.parse(raw).field : 'name';
+  });
+
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(() => {
+    const raw = localStorage.getItem(STORAGE_SORT);
+    return raw ? JSON.parse(raw).dir : 'asc';
+  });
+
   const [isPropertiesOpen, setIsPropertiesOpen] = useState(false);
   const [selectedFileInfo, setSelectedFileInfo] = useState<any | null>(null);
   const [renameTarget, setRenameTarget] = useState<{ id: string; type: "file" | "folder"; name: string } | null>(null);
@@ -63,7 +78,16 @@ const Home: React.FC = () => {
 
   const currentFolderId = folderId ?? null;
 
+  useEffect(() => {
+    localStorage.setItem(STORAGE_VIEW_MODE, viewMode);
+  }, [viewMode]);
 
+  useEffect(() => {
+    localStorage.setItem(
+      STORAGE_SORT,
+      JSON.stringify({ field: sortField, dir: sortDirection })
+    );
+  }, [sortField, sortDirection]);
 
   // При смене папки — загружаем её содержимое
   useEffect(() => {
