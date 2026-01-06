@@ -11,11 +11,12 @@ import CopyFileDialog from '../components/CopyFileDialog';
 import FilePropertiesDialog from '../components/FilePropertiesDialog';
 import Footer from '../components/Footer';
 import { toast } from 'react-toastify';
-import { fetchFolderItems, downloadFile, createFolder, fetchFileInfo, deleteFile, deleteFolder, renameFile, renameFolder, copyFile, moveFile, moveFolder } from '../services/storage';
+import { fetchFolderItems, downloadFile, createFolder, fetchFileInfo, deleteFile, deleteFolder, renameFile, renameFolder, copyFile, moveFile, moveFolder, bulkDelete } from '../services/storage';
 import { resolveFileIcon } from "../components/FileTable";
 import { type FileItem } from '../services/interfaces';
 import { useParams, useNavigate } from "react-router-dom";
 import FileViewer from '../components/FileViewer';
+import type { PurgeItemDto, BulkDeleteResult } from '../services/interfaces'
 
   const mapItems = (items: any[]): FileItem[] =>
     items.map(it => ({
@@ -52,10 +53,17 @@ const Home: React.FC = () => {
   const [moveItem, setMoveItem] = useState<{ id: string; type: "file" | "folder"; name: string } | null>(null);
   const [viewFileId, setViewFileId] = useState<string | null>(null);
 
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  const selectedFilesCount = selectedIds.filter(id => files.find(f => f.id === id)?.type === 'file').length;
+  const selectedFoldersCount = selectedIds.filter(id => files.find(f => f.id === id)?.type === 'folder').length;
+
   const { folderId } = useParams();
   const navigate = useNavigate();
 
   const currentFolderId = folderId ?? null;
+
+
 
   // При смене папки — загружаем её содержимое
   useEffect(() => {
@@ -82,6 +90,7 @@ const Home: React.FC = () => {
       }
     };
 
+    setSelectedIds([]);//сброс выбранных элементов
     load();
   }, [currentFolderId]);
 
@@ -320,6 +329,38 @@ const Home: React.FC = () => {
     setViewFileId(fileId);
   };
 
+  const handleDeleteSelected = async () => {
+    if (selectedIds.length === 0) return;
+
+    const items: PurgeItemDto[] = selectedIds.map(id => {
+      const it = files.find(f => f.id === id);
+      return {
+        id,
+        type: it?.type === 'folder' ? 'FOLDER' : 'FILE'
+      };
+    });
+
+    try {
+      const result: BulkDeleteResult = await bulkDelete(items);
+
+      if (result.failed && Object.keys(result.failed).length > 0) {
+        const failCount = Object.keys(result.failed).length;
+        const successCount = result.success?.length ?? 0;
+        toast.warn(`Удалено: ${successCount}. Не удалено: ${failCount}.`);
+      } else {
+        toast.success(`Удалено: ${result.success?.length ?? selectedIds.length}`);
+      }
+
+      const updated = await fetchFolderItems(currentFolderId);
+      setFiles(mapItems(updated.items));
+
+      setSelectedIds([]);
+    } catch (e) {
+      toast.error("Ошибка при пакетном удалении");
+      console.error(e);
+    }
+  };
+
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       <Header />
@@ -361,6 +402,10 @@ const Home: React.FC = () => {
               setSortField(field);
               setSortDirection(dir);
             }}
+            selectedFilesCount={selectedFilesCount}
+            selectedFoldersCount={selectedFoldersCount}
+            onDeleteSelected={handleDeleteSelected}
+            onClearSelection={() => setSelectedIds([])}
           />
 
           <div className="flex flex-col flex-1 mt-4 overflow-hidden">
@@ -395,6 +440,8 @@ const Home: React.FC = () => {
                   setIsCreateFolderOpen(true);
                 }}
                 onUploadFile={() => setIsUploadOpen(true)}
+                selectedIds={selectedIds}
+                onSelectionChange={(ids) => setSelectedIds(ids)}
               />
             )}
           </div>

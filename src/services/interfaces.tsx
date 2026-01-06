@@ -33,3 +33,13 @@ export interface FileItem {
   createdAt: string | null;
   updatedAt: string | null;
 }
+
+export interface PurgeItemDto {
+  id: string;
+  type: "FILE" | "FOLDER";
+}
+
+export interface BulkDeleteResult {
+  success: string[]; // uuid strings
+  failed: { [id: string]: string };
+}

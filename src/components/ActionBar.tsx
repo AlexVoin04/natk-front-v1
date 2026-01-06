@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, FolderPlus, Search, Grid, List, SortAsc } from 'lucide-react';
+import { Upload, FolderPlus, Search, Grid, List, SortAsc, Trash2 } from 'lucide-react';
 
 interface ActionBarProps {
   onUploadFile: () => void;
@@ -9,6 +9,10 @@ interface ActionBarProps {
   onSortChange: (field: 'name' | 'createdAt', dir: 'asc' | 'desc') => void;
   sortField: 'name' | 'createdAt';
   sortDirection: 'asc' | 'desc';
+  selectedFilesCount?: number;
+  selectedFoldersCount?: number;
+  onDeleteSelected?: () => void;
+  onClearSelection?: () => void;
 }
 
 const ActionBar: React.FC<ActionBarProps> = (props) => {
@@ -19,11 +23,17 @@ const ActionBar: React.FC<ActionBarProps> = (props) => {
     onViewModeChange,
     onSortChange,
     sortField,
-    sortDirection
+    sortDirection, 
+    selectedFilesCount = 0, 
+    selectedFoldersCount = 0, 
+    onDeleteSelected,
+    onClearSelection
   } = props;
 
   const [openSort, setOpenSort] = useState(false);
   const sortRef = useRef<HTMLDivElement>(null);
+
+  const totalSelected = selectedFilesCount + selectedFoldersCount;
 
   // Закрытие при клике вне элемента
   useEffect(() => {
@@ -38,87 +48,129 @@ const ActionBar: React.FC<ActionBarProps> = (props) => {
   }, []);
 
   return (
-    <div className="flex items-center justify-between mb-6">
-      <div className="flex items-center space-x-3">
-        <button
-          onClick={onUploadFile}
-          className="flex items-center space-x-2 bg-[#4B67F5] text-white px-4 py-2 rounded-xl hover:bg-blue-600 transition-colors"
-        >
-          <Upload size={16} />
-          <span>Upload File</span>
-        </button>
-        
-        <button
-          onClick={onCreateFolder}
-          className="flex items-center space-x-2 bg-white border border-gray-300 text-[#3A3A3C] px-4 py-2 rounded-xl hover:bg-gray-50 transition-colors"
-        >
-          <FolderPlus size={16} />
-          <span>New Folder</span>
-        </button>
+    <div className="flex items-center justify-between mb-6 bg-white rounded-xl border border-gray-200 px-4 py-3">
+      <div className="flex items-center gap-3 min-w-0">
+        {totalSelected > 0 ? (
+          <div className="flex items-center gap-4 bg-blue-50 border border-blue-100 px-4 py-2 rounded-xl">
+            
+            <button
+              onClick={onClearSelection}
+              className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-blue-100 text-blue-600"
+              title="Clear selection"
+            >
+              ✕
+            </button>
+
+            <div className="flex flex-col leading-tight">
+              <div className="text-sm font-semibold text-blue-900">
+                {totalSelected} selected
+              </div>
+
+              <div className="text-xs text-blue-600">
+                {selectedFoldersCount} folders · {selectedFilesCount} files
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            <button
+              onClick={onUploadFile}
+              className="flex items-center gap-2 bg-[#4B67F5] text-white px-4 py-2 rounded-xl hover:bg-blue-600 transition-colors"
+            >
+              <Upload size={16} />
+              <span>Upload</span>
+            </button>
+
+            <button
+              onClick={onCreateFolder}
+              className="flex items-center gap-2 bg-white border border-gray-300 text-[#3A3A3C] px-4 py-2 rounded-xl hover:bg-gray-50 transition-colors"
+            >
+              <FolderPlus size={16} />
+              <span>New Folder</span>
+            </button>
+          </>
+        )}
       </div>
 
-      <div className="flex items-center space-x-3">
-        <div className="relative">
-          <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search files..."
-            className="pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B67F5] focus:border-transparent"
-          />
-        </div>
+      <div className="flex items-center gap-3">
 
-        <div className="flex items-center bg-white border border-gray-300 rounded-xl overflow-hidden">
+        {totalSelected > 0 ? (
           <button
-            onClick={() => onViewModeChange('list')}
-            className={`p-2 transition-colors ${
-              viewMode === 'list' ? 'bg-[#4B67F5] text-white' : 'text-[#3A3A3C] hover:bg-gray-100'
-            }`}
+            onClick={onDeleteSelected}
+            className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-xl
+             shadow-sm hover:bg-red-700 hover:shadow transition"
           >
-            <List size={16} />
+            <Trash2 size={16} />
+            <span>Delete</span>
           </button>
-          <button
-            onClick={() => onViewModeChange('grid')}
-            className={`p-2 transition-colors ${
-              viewMode === 'grid' ? 'bg-[#4B67F5] text-white' : 'text-[#3A3A3C] hover:bg-gray-100'
-            }`}
-          >
-            <Grid size={16} />
-          </button>
-        </div>
+        ) : (
+          <>
+            <div className="relative">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search..."
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B67F5]"
+              />
+            </div>
 
-        <div className="relative" ref={sortRef}>
-          <button
-            className="p-2 text-[#3A3A3C] hover:text-blue-600 rounded-xl transition-colors"
-            onClick={() => setOpenSort(prev => !prev)}
-          >
-            <SortAsc
-              size={16}
-              className={`transform transition-transform duration-200 ${
-                openSort ? "rotate-180" : "rotate-0"
-              }`}
-            />
-          </button>
-
-          {openSort && (
-            <div className="absolute right-0 mt-2 bg-white border rounded-xl shadow-lg p-2 w-44 text-sm z-20">
-              <div className="font-medium mb-2 text-gray-600">Sort by</div>
-
+            <div className="flex items-center bg-white border border-gray-300 rounded-xl overflow-hidden">
               <button
-                className="block w-full text-left py-1 px-2 hover:bg-gray-100 rounded"
-                onClick={() => onSortChange('name', sortDirection === 'asc' ? 'desc' : 'asc')}
+                onClick={() => onViewModeChange('list')}
+                className={`p-2 ${
+                  viewMode === 'list'
+                    ? 'bg-[#4B67F5] text-white'
+                    : 'text-[#3A3A3C] hover:bg-gray-100'
+                }`}
               >
-                Name {sortField === 'name' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+                <List size={16} />
               </button>
 
               <button
-                className="block w-full text-left py-1 px-2 hover:bg-gray-100 rounded"
-                onClick={() => onSortChange('createdAt', sortDirection === 'asc' ? 'desc' : 'asc')}
+                onClick={() => onViewModeChange('grid')}
+                className={`p-2 ${
+                  viewMode === 'grid'
+                    ? 'bg-[#4B67F5] text-white'
+                    : 'text-[#3A3A3C] hover:bg-gray-100'
+                }`}
               >
-                Created {sortField === 'createdAt' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+                <Grid size={16} />
               </button>
             </div>
-          )}
-        </div>
+
+            <div className="relative" ref={sortRef}>
+              <button
+                className="p-2 text-[#3A3A3C] hover:text-blue-600 rounded-xl"
+                onClick={() => setOpenSort(v => !v)}
+              >
+                <SortAsc
+                  size={16}
+                  className={`transition-transform ${openSort ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              {openSort && (
+                <div className="absolute right-0 mt-2 bg-white border rounded-xl shadow-lg p-2 w-44 text-sm z-20">
+                  <div className="font-medium mb-2 text-gray-600">Sort by</div>
+
+                  <button
+                    className="block w-full text-left py-1 px-2 hover:bg-gray-100 rounded"
+                    onClick={() => onSortChange('name', sortDirection === 'asc' ? 'desc' : 'asc')}
+                  >
+                    Name {sortField === 'name' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+                  </button>
+
+                  <button
+                    className="block w-full text-left py-1 px-2 hover:bg-gray-100 rounded"
+                    onClick={() => onSortChange('createdAt', sortDirection === 'asc' ? 'desc' : 'asc')}
+                  >
+                    Created {sortField === 'createdAt' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

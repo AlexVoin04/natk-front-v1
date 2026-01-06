@@ -56,6 +56,8 @@ interface FileTableProps {
   sortDirection: 'asc' | 'desc';
   onCreateFolder: () => void;
   onUploadFile: () => void;
+  selectedIds?: string[];
+  onSelectionChange?: (ids: string[]) => void;
 }
 
 export const resolveFileIcon = (item: FileItem) => {
@@ -96,7 +98,7 @@ const AntivirusBadge = ({ status }: { status?: string }) => {
   );
 };
 
-const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onCreateFolder, onUploadFile, onItemDoubleClick, onDownloadFile, onOpenProperties, onDeleteItem, onRename, onCopy, onMove }) => {
+const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onCreateFolder, onUploadFile, onItemDoubleClick, onDownloadFile, onOpenProperties, onDeleteItem, onRename, onCopy, onMove, selectedIds, onSelectionChange }) => {
   if (items.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-12 flex flex-col items-center justify-center flex-1 min-h-[300px]">
@@ -124,11 +126,18 @@ const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onCreateFolder, 
     );
   }
     
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  // const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; itemId: string } | null>(null);
   const [showTooltipFor, setShowTooltipFor] = useState<string | null>(null);
   const [tooltipTarget, setTooltipTarget] = useState<DOMRect | null>(null);
   const [tooltipText, setTooltipText] = useState<string | null>(null);
+
+  const [internalSelected, setInternalSelected] = useState<string[]>([]);
+  const selectedItems = selectedIds ?? internalSelected;
+  const setSelectedItems = (ids: string[]) => {
+    if (onSelectionChange) onSelectionChange(ids);
+    else setInternalSelected(ids);
+  };
 
   const formatFileSize = (bytes?: number| null) => {
     if (bytes == null) return '-';
@@ -146,16 +155,19 @@ const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onCreateFolder, 
 
   const handleContextMenu = (e: React.MouseEvent, itemId: string) => {
     e.preventDefault();
+    if (!selectedItems.includes(itemId)) {
+      setSelectedItems([itemId]);
+    }
     setContextMenu({ x: e.clientX, y: e.clientY, itemId });
   };
 
   const handleItemClick = (itemId: string, e: React.MouseEvent) => {
     if (e.ctrlKey || e.metaKey) {
-      setSelectedItems(prev => 
-        prev.includes(itemId) 
-          ? prev.filter(id => id !== itemId)
-          : [...prev, itemId]
-      );
+      const next = selectedItems.includes(itemId)
+        ? selectedItems.filter(id => id !== itemId)
+        : [...selectedItems, itemId];
+
+      setSelectedItems(next);
     } else {
       setSelectedItems([itemId]);
     }

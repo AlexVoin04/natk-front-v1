@@ -1,5 +1,6 @@
 import api from "./api";
 import type { AxiosResponse } from "axios";
+import type { PurgeItemDto } from "./interfaces";
 
 export interface TrashItemDto {
   id: string;
@@ -8,11 +9,6 @@ export interface TrashItemDto {
   deletedAt: string;
   path: string;
   parentFolder: string | null;
-}
-
-export interface PurgeItemDto {
-  id: string;
-  type: "FILE" | "FOLDER";
 }
 
 export async function fetchTrashItems(): Promise<TrashItemDto[]> {

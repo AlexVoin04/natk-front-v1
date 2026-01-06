@@ -3,6 +3,7 @@ import type { FolderTreeDto } from "./interfaces";
 import { toast } from "react-toastify";
 import type { AxiosRequestConfig } from 'axios';
 import { type FileItem } from '../services/interfaces';
+import type { PurgeItemDto, BulkDeleteResult } from "./interfaces";
 
 export async function fetchFolderTree(): Promise<FolderTreeDto[]> {
   const resp = await api.get<FolderTreeDto[]>("/storage/folders/tree");
@@ -293,4 +294,20 @@ export async function fetchFileForViewer(fileId: string): Promise<FileForViewer>
     fileName: filename,
     contentType: contentTypeHeader,
   };
+}
+
+export async function bulkDelete(items: PurgeItemDto[]): Promise<BulkDeleteResult> {
+  if (!items || items.length === 0) {
+    return { success: [], failed: {} };
+  }
+
+  try {
+    const resp = await api.delete<BulkDeleteResult>("/storage/items", { data: items });
+    return resp.data;
+  } catch (e: any) {
+    // показываем ошибку и пробрасываем
+    const msg = e?.response?.data?.message || "Ошибка пакетного удаления";
+    toast.error(msg);
+    throw e;
+  }
 }
