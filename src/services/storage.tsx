@@ -311,3 +311,20 @@ export async function bulkDelete(items: PurgeItemDto[]): Promise<BulkDeleteResul
     throw e;
   }
 }
+
+export type StorageSearchScopeApi = 'BOTH' | 'FILES' | 'FOLDERS';
+
+export async function searchItems(
+  q: string,
+  scope: StorageSearchScopeApi = 'BOTH'
+) {
+  const resp = await api.get('/storage/search', {
+    params: {
+      q,
+      scope,
+      // folderId заглушка
+    },
+  });
+
+  return resp.data;
+}

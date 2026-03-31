@@ -59,6 +59,8 @@ interface FileTableProps {
   onUploadFile: () => void;
   selectedIds?: string[];
   onSelectionChange?: (ids: string[]) => void;
+  emptyTitle?: string;
+  emptyDescription?: string;
 }
 
 export const resolveFileIcon = (item: FileItem) => {
@@ -99,14 +101,16 @@ const AntivirusBadge = ({ status }: { status?: string }) => {
   );
 };
 
-const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onCreateFolder, onUploadFile, onItemDoubleClick, onDownloadFile, onOpenProperties, onDeleteItem, onRename, onCopy, onMove, selectedIds, onSelectionChange }) => {
+const FileTable: React.FC<FileTableProps> = ({ items, viewMode, onCreateFolder, onUploadFile, onItemDoubleClick, onDownloadFile, onOpenProperties, onDeleteItem, onRename, onCopy, onMove, selectedIds, onSelectionChange, emptyTitle, emptyDescription }) => {
   if (items.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-12 flex flex-col items-center justify-center flex-1 min-h-[300px]">
         <Folder size={64} className="text-gray-300 mb-4" />
-        <h3 className="text-lg font-medium text-[#3A3A3C] mb-2">The folder is empty</h3>
+        <h3 className="text-lg font-medium text-[#3A3A3C] mb-2">
+          {emptyTitle ?? 'The folder is empty'}
+        </h3>
         <p className="text-sm text-gray-500 mb-6">
-          There are no files or folders here yet
+          {emptyDescription ?? 'There are no files or folders here yet'}
         </p>
         <div className="flex gap-3 text-sm text-gray-500">
           <button 
