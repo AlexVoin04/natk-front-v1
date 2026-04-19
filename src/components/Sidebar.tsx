@@ -200,7 +200,7 @@ const Sidebar: React.FC<Props> = ({ onFolderClick, refreshTrigger }) => {
 };
 
   return (
-    <aside className="w-64 bg-white border-r border-b border-gray-200 flex flex-col">
+    <aside className="w-64 h-full bg-white border-r border-b border-gray-200 flex flex-col">
       <div className="p-4 flex flex-col flex-1 overflow-hidden">
         <nav className="space-y-2">
           <Link

@@ -16,6 +16,7 @@ const Trash: React.FC = () => {
   const [folderTreeVersion, setFolderTreeVersion] = useState(0);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<TrashItemDto | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     loadTrash();
@@ -102,9 +103,29 @@ const Trash: React.FC = () => {
 
   return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
-        <Header />
-        <div className="flex flex-1">
-          <Sidebar />
+        <Header onMenuClick={() => setIsSidebarOpen(true)} />
+        <div className="flex flex-1 overflow-hidden relative">
+          <div className="hidden lg:block">
+            <Sidebar />
+          </div>
+
+          {isSidebarOpen && (
+            <div
+              className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+              onClick={() => setIsSidebarOpen(false)}
+            />
+          )}
+
+          <div
+            className={`
+              fixed top-0 left-0 z-50 h-full w-64 bg-white border-r border-gray-200
+              transform transition-transform duration-300 ease-in-out
+              lg:hidden
+              ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+            `}
+          >
+            <Sidebar />
+          </div>
           <main className="flex-1 p-6">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-3">

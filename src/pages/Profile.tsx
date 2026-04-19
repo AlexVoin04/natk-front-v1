@@ -11,6 +11,7 @@ import type { UserProfile } from '../services/interfaces';
 const Profile: React.FC = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
 const [editForm, setEditForm] = useState({
     name: '',
@@ -185,10 +186,30 @@ const handleChange = (field: string, value: string) => {
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
-      <Header />
+      <Header onMenuClick={() => setIsSidebarOpen(true)} />
       
-      <div className="flex flex-1 min-h-0">
-        <Sidebar />
+      <div className="flex flex-1 min-h-0 overflow-hidden relative">
+        <div className="hidden lg:block">
+          <Sidebar />
+        </div>
+
+        {isSidebarOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+
+        <div
+          className={`
+            fixed top-0 left-0 z-50 h-full w-64 bg-white border-r border-gray-200
+            transform transition-transform duration-300 ease-in-out
+            lg:hidden
+            ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          `}
+        >
+          <Sidebar />
+        </div>
         
         <main className="flex-1 min-h-0 overflow-y-auto p-6">
           <div className="max-w-4xl mx-auto">

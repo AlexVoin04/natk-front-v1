@@ -146,47 +146,49 @@ const ActionBar: React.FC<ActionBarProps> = (props) => {
             </>
           ) : (
             <>
-              <div className="relative flex w-full sm:w-96" ref={searchTypeRef}>
-                <Search
-                  size={16}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                />
-
-                <input
-                  value={localSearch}
-                  onChange={(e) => setLocalSearch(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && localSearch.trim().length >= 3) {
-                      onSearchSubmit(localSearch.trim());
-                    }
-                  }}
-                  placeholder="Search..."
-                  className="w-full border border-r-0 border-gray-300 py-2.5 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-[#4B67F5]"
-                />
-
-                {/* Кнопка поиска */}
-                <button
-                  disabled={!canSearch}
-                  onClick={() => onSearchSubmit(localSearch.trim())}
-                  className={`px-4 border border-gray-300 border-l-0 transition
-                    ${localSearch.trim().length < 3
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : 'bg-[#4B67F5] text-white hover:bg-blue-600'}
-                  `}
+              <div className="relative w-full sm:w-96" ref={searchTypeRef}>
+                <div
+                  className="flex items-stretch overflow-hidden rounded-2xl border border-gray-300
+                            focus-within:ring-2 focus-within:ring-[#4B67F5] focus-within:border-[#4B67F5]"
                 >
-                  Search
-                </button>
+                  <div className="flex items-center pl-3 pr-2 text-gray-400">
+                    <Search size={16} />
+                  </div>
 
-                {/* selector */}
-                <button
-                  disabled={!canSearch}
-                  onClick={() => setOpenSearchType(v => !v)}
-                  className="flex items-center gap-2 rounded-r-2xl border border-gray-300 bg-white px-3 text-sm hover:bg-gray-50"
-                >
-                  {searchMode === 'all' && 'All'}
-                  {searchMode === 'files' && 'Files'}
-                  {searchMode === 'folders' && 'Folders'}
-                </button>
+                  <input
+                    value={localSearch}
+                    onChange={(e) => setLocalSearch(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && localSearch.trim().length >= 3) {
+                        onSearchSubmit(localSearch.trim());
+                      }
+                    }}
+                    placeholder="Search..."
+                    className="w-full bg-transparent py-2.5 pr-3 focus:outline-none"
+                  />
+
+                  <button
+                    disabled={!canSearch}
+                    onClick={() => onSearchSubmit(localSearch.trim())}
+                    className={`px-4 border-l border-gray-300 transition ${
+                      localSearch.trim().length < 3
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-[#4B67F5] text-white hover:bg-blue-600'
+                    }`}
+                  >
+                    Search
+                  </button>
+
+                  <button
+                    disabled={!canSearch}
+                    onClick={() => setOpenSearchType(v => !v)}
+                    className="flex items-center gap-2 border-l border-gray-300 bg-white px-3 text-sm hover:bg-gray-50"
+                  >
+                    {searchMode === 'all' && 'All'}
+                    {searchMode === 'files' && 'Files'}
+                    {searchMode === 'folders' && 'Folders'}
+                  </button>
+                </div>
 
                 {openSearchType && (
                   <div className="absolute right-0 top-full z-20 mt-2 w-40 rounded-2xl border bg-white p-2 text-sm shadow-lg">

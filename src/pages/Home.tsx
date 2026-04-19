@@ -53,6 +53,7 @@ const Home: React.FC = () => {
   const [breadcrumbItems, setBreadcrumbItems] = useState<{ name: string; id: string | null }[]>([]);
   const [currentPath, setCurrentPath] = useState<string>('Все файлы');
   const [loading, setLoading] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
     return (localStorage.getItem(STORAGE_VIEW_MODE) as 'grid' | 'list') || 'list';
@@ -481,17 +482,45 @@ const Home: React.FC = () => {
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
-      <Header />
+      <Header onMenuClick={() => setIsSidebarOpen(true)} />
       
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar 
-          onFolderClick={openFolder} 
-          refreshTrigger={files.length}
-        />
+      <div className="flex flex-1 overflow-hidden relative">
+        <div className="hidden lg:block">
+          <Sidebar
+            onFolderClick={openFolder}
+            refreshTrigger={files.length}
+          />
+        </div>
+
+        {/* Mobile overlay */}
+        {isSidebarOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+
+        <div
+          className={`
+            fixed top-0 left-0 z-50 h-full w-64 bg-white border-r border-gray-200
+            transform transition-transform duration-300 ease-in-out
+            lg:hidden
+            ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          `}
+        >
+          <Sidebar
+            onFolderClick={(id) => {
+              openFolder(id);
+              setIsSidebarOpen(false); // закрываем после выбора
+            }}
+            refreshTrigger={files.length}
+          />
+        </div>
         
         <main className="flex-1 p-6 flex flex-col overflow-hidden">
           <Breadcrumbs
             items={breadcrumbItems}
+            searchQuery={searchQuery}
             onClick={openFolder}
           />
           
