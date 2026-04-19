@@ -184,13 +184,13 @@ const handleChange = (field: string, value: string) => {
   const storagePercentage = (profile.storageUsed / profile.storageLimit) * 100;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       <Header />
       
-      <div className="flex flex-1">
+      <div className="flex flex-1 min-h-0">
         <Sidebar />
         
-        <main className="flex-1 p-6">
+        <main className="flex-1 min-h-0 overflow-y-auto p-6">
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center space-x-3 mb-6">
               <User size={24} className="text-[#3A3A3C]" />
@@ -389,44 +389,7 @@ const handleChange = (field: string, value: string) => {
               </div>
             </div>
 
-            {/* AI Question Generator */}
-            <div className="mt-6 bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-[#3A3A3C] mb-4">AI Question Generator</h2>
-              <p className="text-gray-600 mb-4">
-                Generate questions based on your uploaded files using AI. Configure your preferences below.
-              </p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-[#3A3A3C] mb-2">
-                    Number of Questions
-                  </label>
-                  <select className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B67F5] focus:border-transparent">
-                    <option value="5">5 Questions</option>
-                    <option value="10">10 Questions</option>
-                    <option value="15">15 Questions</option>
-                    <option value="20">20 Questions</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-[#3A3A3C] mb-2">
-                    AI Provider
-                  </label>
-                  <select className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4B67F5] focus:border-transparent">
-                    <option value="openai">OpenAI GPT-4</option>
-                    <option value="claude">Anthropic Claude</option>
-                    <option value="gemini">Google Gemini</option>
-                  </select>
-                </div>
-              </div>
-              
-              <div className="mt-4">
-                <button className="px-4 py-2 bg-[#4B67F5] text-white rounded-xl hover:bg-blue-600 transition-colors">
-                  Save AI Settings
-                </button>
-              </div>
-            </div>
+            
           </div>
         </main>
       </div>
