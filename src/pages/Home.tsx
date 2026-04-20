@@ -11,12 +11,13 @@ import CopyFileDialog from '../components/CopyFileDialog';
 import FilePropertiesDialog from '../components/FilePropertiesDialog';
 import Footer from '../components/Footer';
 import { toast } from 'react-toastify';
-import { fetchFolderItems, downloadFile, createFolder, fetchFileInfo, deleteFile, deleteFolder, renameFile, renameFolder, copyFile, moveFile, moveFolder, bulkDelete } from '../services/storage';
+import { fetchFolderItems, downloadFile, createFolder, fetchFileInfo, deleteFile, deleteFolder, renameFile, renameFolder, copyFile, moveFile, moveFolder, bulkDelete, searchItems } from '../services/storage';
 import { resolveFileIcon } from "../components/FileTable";
 import { type FileItem } from '../services/interfaces';
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import FileViewer from '../components/FileViewer';
 import type { PurgeItemDto, BulkDeleteResult } from '../services/interfaces'
+import type { SearchMode } from '../components/ActionBar';
 
   const mapItems = (items: any[]): FileItem[] =>
     items.map(it => ({
@@ -33,6 +34,18 @@ import type { PurgeItemDto, BulkDeleteResult } from '../services/interfaces'
 const STORAGE_VIEW_MODE = "storage.viewMode";
 const STORAGE_SORT = "storage.sort";
 
+const scopeToApi: Record<SearchMode, 'BOTH' | 'FILES' | 'FOLDERS'> = {
+  all: 'BOTH',
+  files: 'FILES',
+  folders: 'FOLDERS',
+};
+
+const apiToScope = (value: string | null): SearchMode => {
+  if (value === 'FILES') return 'files';
+  if (value === 'FOLDERS') return 'folders';
+  return 'all';
+};
+
 const Home: React.FC = () => {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
@@ -40,6 +53,7 @@ const Home: React.FC = () => {
   const [breadcrumbItems, setBreadcrumbItems] = useState<{ name: string; id: string | null }[]>([]);
   const [currentPath, setCurrentPath] = useState<string>('Все файлы');
   const [loading, setLoading] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
     return (localStorage.getItem(STORAGE_VIEW_MODE) as 'grid' | 'list') || 'list';
@@ -78,6 +92,22 @@ const Home: React.FC = () => {
 
   const currentFolderId = folderId ?? null;
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+
+  const [searchMode, setSearchMode] = useState<SearchMode>(() =>
+    apiToScope(searchParams.get('scope'))
+  );
+
+  const [searchQuery, setSearchQuery] = useState(() =>
+    searchParams.get('q') ?? ''
+  );
+
+  useEffect(() => {
+    setSearchQuery(searchParams.get('q') ?? '');
+    setSearchMode(apiToScope(searchParams.get('scope')));
+  }, [location.search]);
+
   useEffect(() => {
     localStorage.setItem(STORAGE_VIEW_MODE, viewMode);
   }, [viewMode]);
@@ -89,38 +119,9 @@ const Home: React.FC = () => {
     );
   }, [sortField, sortDirection]);
 
-  // При смене папки — загружаем её содержимое
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const resp = await fetchFolderItems(currentFolderId);
-        setCurrentPath(resp.path || 'Все файлы');
-
-        const mapped = mapItems(resp.items);
-        setFiles(mapped);
-
-        setBreadcrumbItems(
-        resp.pathIds.map((id, index) => ({
-          name: resp.pathNames[index],
-          id: id 
-        }))
-      );
-      } catch (e) {
-        console.error("Failed to load folder items", e);
-        toast.error("Failed to load folder contents");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    setSelectedIds([]);//сброс выбранных элементов
-    load();
-  }, [currentFolderId]);
-
   const handleItemDoubleClick = (item: FileItem) => {
     if (item.type === 'folder') {
-      navigate(`/folder/${item.id}`);
+      openFolder(item.id);
     } else {
       handleOpenFileViewer(item.id);
     }
@@ -204,9 +205,11 @@ const Home: React.FC = () => {
   };
 
     // прокидываем в сайдбар — при клике на папку будет устанавливаться currentFolderId
-  const handleFolderClick = (folderId: string | null) => {
+  const openFolder = (folderId: string | null) => {
+    clearSearch();
+
     if (folderId === null) {
-      navigate("/");
+      navigate('/');
     } else {
       navigate(`/folder/${folderId}`);
     }
@@ -385,23 +388,140 @@ const Home: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams);
+
+    const q = searchQuery.trim();
+    if (q) params.set('q', q);
+    else params.delete('q');
+
+    if (searchMode === 'all') params.delete('scope');
+    else params.set('scope', scopeToApi[searchMode]);
+
+    setSearchParams(params, { replace: true });
+  }, [searchQuery, searchMode, setSearchParams]);
+
+  const loadFolder = async (folderId: string | null) => {
+  const resp = await fetchFolderItems(folderId);
+
+    setCurrentPath(resp.path || 'Все файлы');
+    setFiles(mapItems(resp.items));
+    setBreadcrumbItems(
+      resp.pathIds.map((id, index) => ({
+        name: resp.pathNames[index],
+        id,
+      }))
+    );
+  };
+
+  const loadSearch = async (q: string, mode: SearchMode) => {
+    const resp = await searchItems(q, scopeToApi[mode]);
+
+    setCurrentPath(`Поиск: "${q}"`);
+    setBreadcrumbItems([]);
+    setFiles(mapItems(resp));
+  };
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      setSelectedIds([]);
+
+      try {
+        const q = searchQuery.trim();
+
+        if (q) {
+          const resp = await searchItems(q, scopeToApi[searchMode]);
+
+          setCurrentPath(`Поиск: "${q}"`);
+          setBreadcrumbItems([]);
+          setFiles(mapItems(resp));
+          return;
+        }
+
+        const resp = await fetchFolderItems(currentFolderId);
+
+        setCurrentPath(resp.path || 'Все файлы');
+        setFiles(mapItems(resp.items));
+        setBreadcrumbItems(
+          resp.pathIds.map((id, index) => ({
+            name: resp.pathNames[index],
+            id,
+          }))
+        );
+
+      } catch (e) {
+        console.error('Failed to load data', e);
+        toast.error('Failed to load data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, [currentFolderId, searchQuery, searchMode]);
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setSearchMode('all');
+  };
+
+
+  const handleSearchSubmit = (value: string) => {
+    const q = value.trim();
+    if (q.length < 3) return;
+
+    if (currentFolderId !== null) {
+      navigate('/'); // убираем папку из контекста поиска
+    }
+
+    setSearchQuery(q);
+  };
+
+
+
   return (
     <div className="h-screen flex flex-col bg-gray-50">
-      <Header />
+      <Header onMenuClick={() => setIsSidebarOpen(true)} />
       
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar 
-          onFolderClick={handleFolderClick} 
-          refreshTrigger={files.length}
-        />
+      <div className="flex flex-1 overflow-hidden relative">
+        <div className="hidden lg:block">
+          <Sidebar
+            onFolderClick={openFolder}
+            refreshTrigger={files.length}
+          />
+        </div>
+
+        {/* Mobile overlay */}
+        {isSidebarOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+
+        <div
+          className={`
+            fixed top-0 left-0 z-50 h-full w-64 bg-white border-r border-gray-200
+            transform transition-transform duration-300 ease-in-out
+            lg:hidden
+            ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          `}
+        >
+          <Sidebar
+            onFolderClick={(id) => {
+              openFolder(id);
+              setIsSidebarOpen(false); // закрываем после выбора
+            }}
+            refreshTrigger={files.length}
+          />
+        </div>
         
         <main className="flex-1 p-6 flex flex-col overflow-hidden">
           <Breadcrumbs
             items={breadcrumbItems}
-            onClick={(id) => {
-              if (id === null) navigate("/");
-              else navigate(`/folder/${id}`);
-            }}
+            searchQuery={searchQuery}
+            onClick={openFolder}
           />
           
           <ActionBar
@@ -430,6 +550,10 @@ const Home: React.FC = () => {
             selectedFoldersCount={selectedFoldersCount}
             onDeleteSelected={handleDeleteSelected}
             onClearSelection={() => setSelectedIds([])}
+            searchMode={searchMode}
+            onSearchModeChange={setSearchMode}
+            searchValue={searchQuery}
+            onSearchSubmit={handleSearchSubmit}
           />
 
           <div className="flex flex-col flex-1 mt-4 overflow-hidden">
@@ -466,6 +590,12 @@ const Home: React.FC = () => {
                 onUploadFile={() => setIsUploadOpen(true)}
                 selectedIds={selectedIds}
                 onSelectionChange={(ids) => setSelectedIds(ids)}
+                emptyTitle={searchQuery.trim() ? 'Ничего не найдено' : 'Папка пуста'}
+                emptyDescription={
+                  searchQuery.trim()
+                    ? `По запросу "${searchQuery}" ничего не найдено`
+                    : 'Здесь ещё нет файлов и папок'
+                }
               />
             )}
           </div>
