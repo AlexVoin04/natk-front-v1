@@ -19,6 +19,8 @@ interface ActionBarProps {
   onSearchModeChange: (mode: SearchMode) => void;
   searchValue: string;
   onSearchSubmit: (value: string) => void;
+  onGenerateQuestions?: () => void;
+  canGenerateQuestions?: boolean;
 }
 
 const ActionBar: React.FC<ActionBarProps> = (props) => {
@@ -37,7 +39,9 @@ const ActionBar: React.FC<ActionBarProps> = (props) => {
     searchMode,
     onSearchModeChange,
     onSearchSubmit,
-    searchValue
+    searchValue,
+    onGenerateQuestions,
+    canGenerateQuestions
   } = props;
 
   const [openSort, setOpenSort] = useState(false);
@@ -136,6 +140,14 @@ const ActionBar: React.FC<ActionBarProps> = (props) => {
               <button className="inline-flex w-full items-center justify-center rounded-2xl border border-gray-300 px-4 py-2.5 text-sm text-[#3A3A3C] transition hover:bg-gray-100 sm:w-auto">
                 Download
               </button>
+              <button
+                onClick={onGenerateQuestions}
+                disabled={!canGenerateQuestions}
+                className="inline-flex w-full items-center justify-center rounded-2xl bg-[#4B67F5] px-4 py-2.5 text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto"
+              >
+                Generate Test
+              </button>
+
               <button
                 onClick={onDeleteSelected}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-red-600 px-4 py-2.5 text-white shadow-sm transition hover:bg-red-700 sm:w-auto"
