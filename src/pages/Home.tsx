@@ -669,7 +669,12 @@ const Home: React.FC = () => {
         open={questionWorkspaceOpen}
         files={files}
         selectedFileIds={selectedFileIds}
+        currentFolderId={currentFolderId} 
         onClose={() => setQuestionWorkspaceOpen(false)}
+        onFileSaved={async () => {
+          const resp = await fetchFolderItems(currentFolderId);
+          setFiles(mapItems(resp.items));
+        }}
       />
 
       {viewFileId && (

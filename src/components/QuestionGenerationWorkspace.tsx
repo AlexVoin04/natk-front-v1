@@ -6,12 +6,15 @@ import { MAX_QUESTION_FILES, QUESTION_TYPES, type QuestionCounts } from "../conf
 import type { FileItem } from "../services/interfaces";
 import GiftPreview from "./GiftPreview";
 import { MOCK_GIFT } from "../mocks/mockGift";
+import { uploadFileRequest } from "../services/storage";
 
 type Props = {
   open: boolean;
   files: FileItem[];
   selectedFileIds: string[];
+  currentFolderId: string | null;
   onClose: () => void;
+  onFileSaved: () => void;
 };
 
 const USE_MOCK = false;
@@ -29,7 +32,9 @@ const QuestionGenerationWorkspace: React.FC<Props> = ({
   open,
   files,
   selectedFileIds,
+  currentFolderId,
   onClose,
+  onFileSaved,
 }) => {
   const [counts, setCounts] = useState<QuestionCounts>(createDefaultCounts());
   const [provider, setProvider] = useState("GEMINI");
@@ -79,6 +84,32 @@ const QuestionGenerationWorkspace: React.FC<Props> = ({
       setLoading(false);
     }
   };
+
+  const fileName = `generated-test-${new Date().toISOString().slice(0,19)}.txt`;
+
+  const handleSaveTxt = async () => {
+    if (!result) return;
+
+    try {
+      const blob = new Blob([result], { type: "text/plain;charset=utf-8" });
+      const file = new File([blob], "generated-test.txt", {
+        type: "text/plain",
+      });
+
+      await uploadFileRequest(
+        file,
+        fileName,
+        currentFolderId
+      );
+
+      toast.success("Файл сохранён в текущую папку");
+      onFileSaved();
+    } catch (e) {
+      console.error(e);
+      toast.error("Не удалось сохранить файл");
+    }
+  };
+
 
   const handleCopy = async () => {
     if (!result) return;
@@ -168,13 +199,23 @@ const QuestionGenerationWorkspace: React.FC<Props> = ({
               <h3 className="font-medium text-[#3A3A3C]">Result</h3>
 
               {result && (
-                <button
-                  onClick={handleCopy}
-                  className="inline-flex items-center gap-2 rounded-xl border border-gray-300 px-3 py-2 text-sm hover:bg-gray-50"
-                >
-                  <Copy size={14} />
-                  Copy
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleCopy}
+                    className="inline-flex items-center gap-2 rounded-xl border border-gray-300 px-3 py-2 text-sm hover:bg-gray-50"
+                  >
+                    <Copy size={14} />
+                    Copy
+                  </button>
+
+                  <button
+                    onClick={handleSaveTxt}
+                    className="inline-flex items-center gap-2 rounded-xl border border-gray-300 px-3 py-2 text-sm hover:bg-gray-50"
+                  >
+                    <FileText size={14} />
+                    Save .txt
+                  </button>
+                </div>
               )}
             </div>
 
