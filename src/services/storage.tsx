@@ -109,7 +109,7 @@ export async function uploadFileRequest(
   formData.append("fileData", file);
 
   const config: AxiosRequestConfig = {
-    headers: { "Content-Type": "multipart/form-data" },
+    // headers: { "Content-Type": "multipart/form-data" },
     onUploadProgress: (progressEvent) => {
       if (progressEvent.total && onProgress) {
         const percentCompleted = Math.round(

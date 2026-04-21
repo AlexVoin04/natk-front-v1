@@ -18,6 +18,7 @@ import { useParams, useNavigate, useSearchParams, useLocation } from "react-rout
 import FileViewer from '../components/FileViewer';
 import type { PurgeItemDto, BulkDeleteResult } from '../services/interfaces'
 import type { SearchMode } from '../components/ActionBar';
+import QuestionGenerationWorkspace from '../components/QuestionGenerationWorkspace';
 
   const mapItems = (items: any[]): FileItem[] =>
     items.map(it => ({
@@ -54,6 +55,7 @@ const Home: React.FC = () => {
   const [currentPath, setCurrentPath] = useState<string>('Все файлы');
   const [loading, setLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [questionWorkspaceOpen, setQuestionWorkspaceOpen] = useState(false);
 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
     return (localStorage.getItem(STORAGE_VIEW_MODE) as 'grid' | 'list') || 'list';
@@ -102,6 +104,12 @@ const Home: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState(() =>
     searchParams.get('q') ?? ''
   );
+
+  const selectedFileIds = selectedIds.filter(
+    (id) => files.find((f) => f.id === id)?.type === "file"
+  );
+
+  const canGenerateQuestions = selectedFileIds.length > 0;
 
   useEffect(() => {
     setSearchQuery(searchParams.get('q') ?? '');
@@ -554,6 +562,8 @@ const Home: React.FC = () => {
             onSearchModeChange={setSearchMode}
             searchValue={searchQuery}
             onSearchSubmit={handleSearchSubmit}
+            onGenerateQuestions={() => setQuestionWorkspaceOpen(true)}
+            canGenerateQuestions={canGenerateQuestions}
           />
 
           <div className="flex flex-col flex-1 mt-4 overflow-hidden">
@@ -653,6 +663,18 @@ const Home: React.FC = () => {
           setCreateFolderParentName("Все файлы");
         }}
         onConfirm={handleCreateFolderConfirm}
+      />
+
+      <QuestionGenerationWorkspace
+        open={questionWorkspaceOpen}
+        files={files}
+        selectedFileIds={selectedFileIds}
+        currentFolderId={currentFolderId} 
+        onClose={() => setQuestionWorkspaceOpen(false)}
+        onFileSaved={async () => {
+          const resp = await fetchFolderItems(currentFolderId);
+          setFiles(mapItems(resp.items));
+        }}
       />
 
       {viewFileId && (
