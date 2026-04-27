@@ -158,7 +158,7 @@ const Login: React.FC = () => {
 
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <input
+              {/* <input
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
@@ -166,7 +166,7 @@ const Login: React.FC = () => {
               />
               <label htmlFor="remember-me" className="ml-2 block text-sm text-[#3A3A3C]">
                 Remember me
-              </label>
+              </label> */}
             </div>
 
             <div className="text-sm">
