@@ -13,6 +13,8 @@ import Login from './src/pages/Login';
 import Register from './src/pages/Register';
 import NotFound from './src/pages/NotFound';
 import ProtectedRoute from './src/components/ProtectedRoute';
+import ForgotPassword from './src/pages/ForgotPassword';
+import ResetPassword from './src/pages/ResetPassword';
 
 const App: React.FC = () => {
   return (
@@ -23,6 +25,8 @@ const App: React.FC = () => {
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/" element={
                 <ProtectedRoute>
                   <Home />
